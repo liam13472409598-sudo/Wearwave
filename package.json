@@ -19,6 +19,7 @@
     "express-rate-limit": "^8.6.2",
     "file-type": "^22.0.1",
     "helmet": "^8.3.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "pg": "^8.23.0"
   }
 }

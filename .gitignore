@@ -2,5 +2,6 @@ node_modules/
 uploads/*
 !uploads/.gitkeep
 data/*.json
+data/*.tmp
 .DS_Store
 .env

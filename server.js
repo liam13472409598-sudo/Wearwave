@@ -5,6 +5,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import { fileTypeFromBuffer } from 'file-type';
+import pg from 'pg';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
@@ -14,9 +15,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = Number(process.env.PORT || 4173);
 const isProduction = process.env.NODE_ENV === 'production';
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(__dirname, 'uploads');
 const dataDir = path.join(__dirname, 'data');
 const storePath = path.join(dataDir, 'store.json');
+const databaseUrl = process.env.DATABASE_URL || '';
+const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl, max: Number(process.env.DB_POOL_SIZE || 10), ssl: isProduction ? { rejectUnauthorized: false } : undefined }) : null;
 const sessionCookie = 'wearwave_session';
 const sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
 const maxImageBytes = 10 * 1024 * 1024;
@@ -36,6 +39,14 @@ const lookCatalog = [
 let storeWriteQueue = Promise.resolve();
 
 async function readStore() {
+  if (pool) {
+    const result = await pool.query('SELECT data FROM wearwave_store WHERE id = 1');
+    if (result.rowCount) return result.rows[0].data;
+    const initial = { users: [], sessions: {}, saves: {}, analyses: [] };
+    await pool.query('INSERT INTO wearwave_store (id, data) VALUES (1, $1::jsonb) ON CONFLICT (id) DO NOTHING', [JSON.stringify(initial)]);
+    return initial;
+  }
+  if (isProduction && process.env.ALLOW_FILE_STORE !== 'true') throw new Error('production_database_required');
   try {
     const parsed = JSON.parse(await fs.readFile(storePath, 'utf8'));
     return {
@@ -54,6 +65,11 @@ async function readStore() {
 
 function writeStore(store) {
   storeWriteQueue = storeWriteQueue.then(async () => {
+    if (pool) {
+      await pool.query('INSERT INTO wearwave_store (id, data, updated_at) VALUES (1, $1::jsonb, NOW()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()', [JSON.stringify(store)]);
+      return;
+    }
+    if (isProduction && process.env.ALLOW_FILE_STORE !== 'true') throw new Error('production_database_required');
     const temporaryPath = `${storePath}.tmp`;
     await fs.writeFile(temporaryPath, JSON.stringify(store, null, 2));
     await fs.rename(temporaryPath, storePath);
@@ -101,15 +117,21 @@ function requireSameOrigin(req, res, next) {
 }
 
 async function requireUser(req, res, next) {
-  req.user = await getCurrentUser(req);
-  if (!req.user) return res.status(401).json({ ok:false, error:'authentication_required' });
-  next();
+  try {
+    req.user = await getCurrentUser(req);
+    if (!req.user) return res.status(401).json({ ok:false, error:'authentication_required' });
+    next();
+  } catch (error) {
+    next(error);
+  }
 }
 
 function saveKey(req) {
   return req.user?.id || String(req.header('x-client-id') || 'anonymous').slice(0, 120);
 }
 
+if (isProduction && !databaseUrl && process.env.ALLOW_FILE_STORE !== 'true') throw new Error('DATABASE_URL is required in production');
+if (pool) await pool.query('CREATE TABLE IF NOT EXISTS wearwave_store (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
 await fs.mkdir(uploadDir, { recursive: true });
 await fs.mkdir(dataDir, { recursive: true });
 await readStore();
@@ -140,7 +162,14 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHea
 const uploadLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false });
 app.use('/api', apiLimiter);
 
-app.get('/api/health', (_req, res) => res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend' }));
+app.get('/api/health', async (_req, res) => {
+  let database = 'file';
+  if (pool) {
+    try { await pool.query('SELECT 1'); database = 'postgres'; }
+    catch (_) { return res.status(503).json({ ok:false, service:'wearwave', error:'database_unavailable' }); }
+  }
+  res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend', database });
+});
 
 app.post('/api/auth/register', authLimiter, requireSameOrigin, async (req, res, next) => {
   try {
@@ -184,6 +213,15 @@ app.post('/api/auth/logout', requireSameOrigin, async (req, res, next) => {
     clearSessionCookie(res);
     res.json({ ok:true });
   } catch (error) { next(error); }
+});
+
+app.use('/api', async (req, _res, next) => {
+  try {
+    req.user = req.user || await getCurrentUser(req);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get('/api/auth/me', async (req, res, next) => {
