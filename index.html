@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f5f4ef" />
+  <title>WEARWAVE - 找到下一套穿搭</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="grain"></div>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <button class="wordmark" id="homeButton" aria-label="回到首页"><span class="wordmark-mark">W</span><span>WEARWAVE</span></button>
+      <div class="topbar-right">
+        <span class="status-line"><span class="status-dot"></span><span data-i18n="ready">灵感引擎已就绪</span></span>
+        <button class="account-button" id="accountButton" aria-haspopup="dialog"><span id="accountButtonLabel" data-i18n="account">登录</span></button>
+        <button class="language-switch" id="languageButton" aria-label="切换语言">EN</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="guideScreen" class="screen active-screen">
+        <div class="guide-layout">
+          <div class="guide-copy">
+            <div class="eyebrow"><span class="eyebrow-line"></span><span data-i18n="captureGuide">拍摄指南</span></div>
+            <h1 data-i18n-html="heroTitle">拍下单品，<br><em>找到合适的穿法。</em></h1>
+            <p class="lede" data-i18n="guideLede">拍下你的单品。WEARWAVE 会从真实街头风格中，找到下一套适合你的穿搭参考。</p>
+            <div class="guide-actions">
+              <button class="primary-button" id="startCameraButton"><span class="button-icon">↗</span><span data-i18n="startCamera">开始拍摄</span></button>
+              <button class="text-button" id="uploadButton" type="button"><span data-i18n="uploadInstead">从电脑上传</span><span>↗</span></button>
+            </div>
+            <div class="capture-notes">
+              <div class="note"><span class="note-number">01</span><span data-i18n="noteLight">光线明亮</span></div>
+              <div class="note"><span class="note-number">02</span><span data-i18n="noteBackground">背景干净</span></div>
+              <div class="note"><span class="note-number">03</span><span data-i18n="noteComplete">单品完整入镜</span></div>
+            </div>
+          </div>
+          <div class="guide-visual">
+            <div class="visual-orbit orbit-one"></div>
+            <div class="visual-orbit orbit-two"></div>
+            <div class="guide-card main-guide-card">
+              <div class="card-topline"><span>01 / 03</span><span>WEARWAVE</span></div>
+              <div class="guide-photo photo-shirt"></div>
+              <div class="card-caption"><span data-i18n="itemTop">上衣</span><span class="arrow-mark">↗</span></div>
+            </div>
+            <div class="guide-card mini-guide-card card-left">
+              <div class="mini-photo photo-pants"></div><span data-i18n="itemPants">裤子</span>
+            </div>
+            <div class="guide-card mini-guide-card card-right">
+              <div class="mini-photo photo-cap"></div><span data-i18n="itemCap">帽子</span>
+            </div>
+            <div class="visual-stamp"><span data-i18n-html="visualStamp">找<br>到<br>灵感</span></div>
+          </div>
+        </div>
+        <div class="guide-footer"><span data-i18n="footerLine">为好奇的穿衣者而做</span></div>
+      </section>
+
+      <section id="cameraScreen" class="screen">
+        <div class="camera-layout">
+          <div class="camera-topline"><button class="back-button" data-back="guideScreen">← <span data-i18n="back">返回</span></button><span class="camera-counter" data-i18n="captureCounter">拍摄 / 01</span></div>
+          <div class="camera-frame" id="cameraFrame">
+            <div class="camera-corner corner-tl"></div><div class="camera-corner corner-tr"></div><div class="camera-corner corner-bl"></div><div class="camera-corner corner-br"></div>
+            <div class="camera-placeholder">
+              <div class="camera-crosshair"></div>
+              <span class="camera-hint" data-i18n="centerItem">将单品放在框内</span>
+            </div>
+            <div class="camera-prompt"><span class="prompt-dot"></span><span id="cameraStatus" data-i18n="cameraReady">相机已准备</span></div>
+          </div>
+          <div class="camera-controls"><button class="round-control" data-back="guideScreen" aria-label="返回首页">×</button><button class="shutter-button" id="captureButton" aria-label="拍摄"><span></span></button><button class="round-control" id="cameraUploadButton" aria-label="选择示例单品">↑</button></div>
+          <p class="camera-tip" data-i18n="cameraTip">建议单独拍摄一件单品，轮廓越清晰，匹配越准确。</p>
+        </div>
+      </section>
+
+      <section id="confirmScreen" class="screen">
+        <div class="confirm-layout">
+          <div class="camera-topline"><button class="back-button" data-back="cameraScreen">← <span data-i18n="retake">重新拍摄</span></button><span class="camera-counter" data-i18n="itemCounter">你的单品 / 01</span></div>
+          <div class="confirm-content">
+            <div class="confirm-image-wrap"><div class="item-photo"></div><div class="image-label" data-i18n="imageItem">你的单品 / 01</div></div>
+            <div class="confirm-info">
+              <div class="eyebrow"><span class="eyebrow-line"></span><span data-i18n="looksLike">识别结果</span></div>
+              <h2 data-i18n-html="confirmTitle">你的单品<br><em>已经被看见。</em></h2>
+              <p class="confirm-sub" data-i18n="confirmSub">点击任意标签，调整 WEARWAVE 对这件单品的理解。</p>
+              <div class="tag-editor" id="tagEditor">
+                <button class="editable-tag" data-tag-key="color"><span class="tag-label" data-i18n="colorLabel">颜色</span><span class="tag-value" data-i18n-value="tagColorValue">黑色</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
+                <button class="editable-tag" data-tag-key="material"><span class="tag-label" data-i18n="materialLabel">材质</span><span class="tag-value" data-i18n-value="tagMaterialValue">牛仔</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
+                <button class="editable-tag" data-tag-key="fit"><span class="tag-label" data-i18n="fitLabel">版型</span><span class="tag-value" data-i18n-value="tagFitValue">宽腿</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
+                <button class="editable-tag" data-tag-key="type"><span class="tag-label" data-i18n="typeLabel">品类</span><span class="tag-value" data-i18n-value="tagTypeValue">裤子</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
+              </div>
+              <button class="primary-button confirm-button" id="confirmItemButton"><span class="button-icon">↗</span><span data-i18n="findLooks">确认，寻找穿搭</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="analysisScreen" class="screen">
+        <div class="analysis-wrap">
+          <div class="analysis-mark"><span>W</span></div>
+          <div class="analysis-orbit"></div>
+          <p class="analysis-kicker">WEARWAVE / <span data-i18n="matchEngine">匹配引擎</span></p>
+          <h2 id="analysisHeadline" data-i18n-html="analysisTitle">正在读取你的<br><em>风格信号。</em></h2>
+          <div class="analysis-progress"><div id="analysisBar"></div></div>
+          <div class="analysis-steps" id="analysisSteps">
+            <div class="analysis-step current"><span>01</span><span data-i18n="stepIdentify">识别单品轮廓</span><span class="step-state" data-state="now">现在</span></div>
+            <div class="analysis-step"><span>02</span><span data-i18n="stepMaterial">分析颜色与材质</span><span class="step-state" data-state="next">接下来</span></div>
+            <div class="analysis-step"><span>03</span><span data-i18n="stepMatch">匹配街头风格</span><span class="step-state" data-state="next">接下来</span></div>
+            <div class="analysis-step"><span>04</span><span data-i18n="stepFind">寻找你的下一套</span><span class="step-state" data-state="next">接下来</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="resultsScreen" class="screen results-screen">
+        <div class="results-header"><div class="results-title"><span class="results-kicker"><span data-i18n="matchesFor">匹配结果</span> / <span data-i18n="itemName">黑色牛仔宽腿裤</span></span><h2 data-i18n-html="resultsTitle">找到你的<br><em>灵感。</em></h2></div><div class="results-meta"><span data-i18n="looksFound">找到 04 套穿搭</span><button class="filter-button" id="filterButton" aria-expanded="false"><span data-i18n="filter">筛选</span> <span>＋</span></button></div></div>
+        <div class="filter-panel" id="filterPanel"><span class="filter-label" data-i18n="exploreStyle">探索风格</span><button class="filter-chip active" data-style-key="all" data-i18n="allStyle">全部</button><button class="filter-chip" data-style-key="street" data-i18n="streetStyle">街头</button><button class="filter-chip" data-style-key="vintage" data-i18n="vintageStyle">复古</button><button class="filter-chip" data-style-key="y2k" data-i18n="y2kStyle">Y2K</button><button class="filter-chip" data-style-key="minimal" data-i18n="minimalStyle">极简</button></div>
+        <div class="result-feed" id="resultFeed">
+          <article class="look-card" data-style-key="street" data-index="0">
+            <div class="look-image image-look-one"></div><div class="look-number">01 / 04</div>
+            <div class="look-info"><div class="look-info-top"><span class="look-style" data-i18n="streetLabel">街头</span><span class="match-score" data-i18n="match94">匹配 94%</span></div><h3 data-i18n-html="lookTitle0">黑色牛仔裤的<br><em>城市夜行。</em></h3><div class="creator-row"><div class="avatar avatar-one"></div><div><strong>@kai.makes</strong><span>New York, NY</span></div></div><div class="look-actions"><button class="save-button"><span>♡</span><span data-i18n="saveInspo">保存灵感</span></button><button class="view-button detail-button"><span data-i18n="viewPost">查看原帖</span> <span>↗</span></button></div></div>
+          </article>
+          <article class="look-card" data-style-key="vintage" data-index="1">
+            <div class="look-image image-look-two"></div><div class="look-number">02 / 04</div>
+            <div class="look-info"><div class="look-info-top"><span class="look-style" data-i18n="vintageLabel">复古</span><span class="match-score" data-i18n="match91">匹配 91%</span></div><h3 data-i18n-html="lookTitle1">用一点旧时光，<br><em>重写今天。</em></h3><div class="creator-row"><div class="avatar avatar-two"></div><div><strong>@mila.archive</strong><span>London, UK</span></div></div><div class="look-actions"><button class="save-button"><span>♡</span><span data-i18n="saveInspo">保存灵感</span></button><button class="view-button detail-button"><span data-i18n="viewPost">查看原帖</span> <span>↗</span></button></div></div>
+          </article>
+          <article class="look-card" data-style-key="y2k" data-index="2">
+            <div class="look-image image-look-three"></div><div class="look-number">03 / 04</div>
+            <div class="look-info"><div class="look-info-top"><span class="look-style" data-i18n="y2kLabel">Y2K</span><span class="match-score" data-i18n="match88">匹配 88%</span></div><h3 data-i18n-html="lookTitle2">不按规则穿，<br><em>才像你。</em></h3><div class="creator-row"><div class="avatar avatar-three"></div><div><strong>@nora.form</strong><span>Seoul, KR</span></div></div><div class="look-actions"><button class="save-button"><span>♡</span><span data-i18n="saveInspo">保存灵感</span></button><button class="view-button detail-button"><span data-i18n="viewPost">查看原帖</span> <span>↗</span></button></div></div>
+          </article>
+          <article class="look-card" data-style-key="minimal" data-index="3">
+            <div class="look-image image-look-four"></div><div class="look-number">04 / 04</div>
+            <div class="look-info"><div class="look-info-top"><span class="look-style" data-i18n="minimalLabel">极简</span><span class="match-score" data-i18n="match84">匹配 84%</span></div><h3 data-i18n-html="lookTitle3">少一点，<br><em>更有重量。</em></h3><div class="creator-row"><div class="avatar avatar-four"></div><div><strong>@soren.studio</strong><span>Copenhagen, DK</span></div></div><div class="look-actions"><button class="save-button"><span>♡</span><span data-i18n="saveInspo">保存灵感</span></button><button class="view-button detail-button"><span data-i18n="viewPost">查看原帖</span> <span>↗</span></button></div></div>
+          </article>
+        </div>
+        <div class="result-empty hidden" id="resultEmpty"><p data-i18n="noResults">没有符合条件的穿搭</p><button class="text-button" id="resetFilterButton"><span data-i18n="captureAgain">重新选择单品</span><span>↗</span></button></div>
+        <aside class="source-float" id="sourceFloat"><div class="source-thumb item-photo"></div><div class="source-copy"><span data-i18n="yourItem">你的单品</span><strong data-i18n="itemName">黑色牛仔宽腿裤</strong></div><button id="collapseSource" data-i18n-aria="collapseItem" aria-label="收起单品">−</button></aside>
+        <button class="source-reopen hidden" id="reopenSource"><span data-i18n="yourItem">你的单品</span> <span>＋</span></button>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" hidden />
+  <div class="auth-backdrop" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-modal">
+      <button class="modal-close" id="authClose" aria-label="关闭">×</button>
+      <div class="eyebrow"><span class="eyebrow-line"></span><span data-i18n="account">登录</span></div>
+      <h2 id="authTitle" data-i18n="loginTitle">登录 WEARWAVE</h2>
+      <p class="auth-sub" data-i18n="loginSub">登录后，你的收藏会在不同设备间同步。</p>
+      <form id="authForm" class="auth-form">
+        <label><span data-i18n="emailLabel">邮箱</span><input id="authEmail" type="email" autocomplete="email" required /></label>
+        <label><span data-i18n="passwordLabel">密码</span><input id="authPassword" type="password" autocomplete="current-password" minlength="8" required /></label>
+        <button class="primary-button" type="submit"><span class="button-icon">↗</span><span id="authSubmitLabel" data-i18n="loginAction">登录</span></button>
+      </form>
+      <p class="auth-switch"><span id="authSwitchPrompt" data-i18n="noAccount">还没有账号？</span> <button id="authModeButton" type="button" data-i18n="registerAction">注册</button></p>
+      <p class="auth-error" id="authError" role="alert"></p>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="detailModal"><div class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" id="modalClose" aria-label="关闭详情">×</button><div class="modal-image image-look-one" id="modalImage"></div><div class="modal-copy"><span class="look-style" id="modalStyle">街头</span><h2 id="modalTitle">城市夜行。</h2><div class="modal-creator"><div class="avatar avatar-one" id="modalAvatar"></div><div><strong id="modalCreator">@kai.makes</strong><span id="modalLocation">New York, NY</span></div></div><p data-i18n="modalDescription">这套穿搭从黑色牛仔的宽松轮廓出发，用短款夹克和银色细节把比例拉回城市节奏。</p><a class="instagram-link" href="https://www.instagram.com/" target="_blank" rel="noreferrer" data-i18n="openPost">打开 Instagram 原帖 ↗</a></div></div></div>
+  <script src="app.js"></script>
+</body>
+</html>
