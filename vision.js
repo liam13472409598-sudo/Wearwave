@@ -2,6 +2,18 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
 const REQUIRED_VISION_VARS = ['OPENAI_API_KEY'];
 const allowedStyles = new Set(['street', 'vintage', 'y2k', 'minimal', 'outdoor']);
 
+export const visionSystemPrompt = `You are WEARWAVE's clothing-vision classifier. Analyze only the clothing item in the supplied image; never identify, describe, or infer the person's identity, age, body, attractiveness, ethnicity, or other sensitive traits. Return only the JSON object required by the schema.
+
+Your job is to identify one primary clothing item for outfit discovery. Be conservative: if the image is not a clear, single, wearable clothing item, set isClothing to false. Do not invent brand names, prices, or details that are not visually supported. Ignore user hints when they conflict with the image.
+
+Use short, concrete English labels. For styleTags, choose only labels supported by the image from: street, vintage, y2k, minimal, outdoor. Confidence must be between 0 and 1. Notes must briefly explain the visible evidence or why the image is unclear. Do not include markdown, commentary, or extra keys.`;
+
+export function buildVisionUserPrompt(userTags = {}) {
+  return `Classify the single primary clothing item in this image for WEARWAVE outfit matching. User-provided hints may be wrong; use them only as weak context: ${JSON.stringify(userTags)}.
+
+Inspect these properties when visible: garment category, dominant color, material or surface, fit or silhouette, and compatible style signals. If there are multiple garments, choose the most prominent one only when it is clearly separable; otherwise mark the image as not a clear single item. If the image is not clothing, is too blurry, mostly obstructed, or shows a person wearing several inseparable items, set isClothing to false.`;
+}
+
 export function getVisionConfig(env = process.env) {
   const missing = REQUIRED_VISION_VARS.filter(name => !String(env[name] || '').trim());
   return {
@@ -76,8 +88,8 @@ export async function analyzeImage({ apiKey, model = DEFAULT_MODEL, imageUrl, us
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        input: [{ role: 'user', content: [
-          { type: 'input_text', text: `Identify the single clothing item in this image. User-provided hints, which may be wrong: ${JSON.stringify(userTags)}. Do not identify a person. If this is not a clear clothing item, set isClothing to false and explain why in notes.` },
+        input: [{ role: 'system', content: visionSystemPrompt }, { role: 'user', content: [
+          { type: 'input_text', text: buildVisionUserPrompt(userTags) },
           { type: 'input_image', image_url: imageUrl, detail: 'low' }
         ] }],
         text: { format: { type: 'json_schema', name: 'wearwave_clothing_analysis', strict: true, schema: outputSchema } },

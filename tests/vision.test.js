@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getVisionConfig, normalizeVisionResult, analyzeImage, summarizeVisionProviderError } from '../vision.js';
+import { getVisionConfig, normalizeVisionResult, analyzeImage, summarizeVisionProviderError, visionSystemPrompt, buildVisionUserPrompt } from '../vision.js';
+
+test('provides safe system and user prompts for clothing analysis', () => {
+  assert.match(visionSystemPrompt, /never identify, describe, or infer the person's identity/i);
+  assert.match(visionSystemPrompt, /Return only the JSON object/i);
+  assert.match(buildVisionUserPrompt({ type: 'pants' }), /User-provided hints may be wrong/i);
+  assert.match(buildVisionUserPrompt({ type: 'pants' }), /multiple garments/i);
+});
 
 test('summarizes provider errors without exposing credentials', () => {
   assert.deepEqual(summarizeVisionProviderError({ error: { code: 'invalid_api_key', message: 'Incorrect API key provided' } }, 401), {
@@ -82,7 +89,12 @@ test('sends the private signed image URL to the vision provider', async () => {
   assert.equal(request.options.headers.Authorization, 'Bearer secret');
   const body = JSON.parse(request.options.body);
   assert.equal(body.model, 'gpt-4o-mini');
-  assert.equal(body.input[0].content[1].image_url, 'https://example.supabase.co/signed-image?token=redacted');
+  assert.equal(body.input[0].role, 'system');
+  assert.equal(body.input[0].content, visionSystemPrompt);
+  assert.equal(body.input[1].role, 'user');
+  assert.equal(body.input[1].content[0].text, buildVisionUserPrompt({ type: 'pants' }));
+  assert.equal(body.input[1].content[1].image_url, 'https://example.supabase.co/signed-image?token=redacted');
+  assert.equal(body.input[1].content[0].type, 'input_text');
 });
 
 test('turns provider failures into a stable error', async () => {
