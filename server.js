@@ -8,6 +8,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import pg from 'pg';
 import { createClient } from '@supabase/supabase-js';
 import { buildAssetPath, getStorageConfig, summarizeStorageError } from './storage.js';
+import { analyzeImage, getVisionConfig } from './vision.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
@@ -28,6 +29,7 @@ const maxImageBytes = 6 * 1024 * 1024;
 const allowedImageTypes = new Set(['jpg', 'png', 'webp', 'heic', 'heif']);
 const storageConfig = getStorageConfig(process.env);
 const supabase = storageConfig.enabled ? createClient(storageConfig.url, storageConfig.serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
+const visionConfig = getVisionConfig(process.env);
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: maxImageBytes, files: 1 }
@@ -137,6 +139,7 @@ function saveKey(req) {
 
 if (isProduction && !databaseUrl && process.env.ALLOW_FILE_STORE !== 'true') throw new Error('DATABASE_URL is required in production');
 if (isProduction && !storageConfig.enabled) throw new Error(`Supabase Storage configuration is incomplete: ${storageConfig.missing.join(', ')}`);
+if (isProduction && !visionConfig.enabled) throw new Error(`Vision configuration is incomplete: ${visionConfig.missing.join(', ')}`);
 if (pool) await pool.query('CREATE TABLE IF NOT EXISTS wearwave_store (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
 await fs.mkdir(uploadDir, { recursive: true });
 await fs.mkdir(dataDir, { recursive: true });
@@ -297,12 +300,21 @@ app.delete('/api/assets/:assetId', requireUser, requireSameOrigin, async (req, r
 
 app.post('/api/analyze', requireSameOrigin, async (req, res, next) => {
   try {
-    const tags = req.body?.tags || {};
-    const analysis = { id:crypto.randomUUID(), createdAt:new Date().toISOString(), userId:req.user?.id || null, assetId:req.body?.assetId || null, tags:{ color:tags.color || '黑色', material:tags.material || '牛仔', fit:tags.fit || '宽腿', type:tags.type || '裤子' }, lookIds:lookCatalog.map(look => look.id) };
+    if (!req.user) return res.status(401).json({ ok:false, error:'authentication_required' });
+    const assetId = String(req.body?.assetId || '');
+    if (!assetId) return res.status(400).json({ ok:false, error:'asset_required' });
     const store = await readStore();
+    const asset = (store.assets || []).find(item => item.id === assetId && item.userId === req.user.id && !item.deletedAt);
+    if (!asset) return res.status(404).json({ ok:false, error:'asset_not_found' });
+    if (!supabase) return res.status(503).json({ ok:false, error:'storage_unavailable' });
+    const { data: signed, error: signedError } = await supabase.storage.from(storageConfig.bucket).createSignedUrl(asset.storagePath, 300);
+    if (signedError) return res.status(502).json({ ok:false, error:'storage_url_failed' });
+    const result = await analyzeImage({ apiKey:visionConfig.apiKey, model:visionConfig.model, imageUrl:signed.signedUrl, userTags:req.body?.tags || {}, timeoutMs:visionConfig.timeoutMs });
+    const analysis = { id:crypto.randomUUID(), createdAt:new Date().toISOString(), userId:req.user.id, assetId, result, lookIds:lookCatalog.map(look => look.id) };
+    store.analyses = Array.isArray(store.analyses) ? store.analyses : [];
     store.analyses.push(analysis);
     await writeStore(store);
-    res.json({ ok:true, status:'completed', source:process.env.AI_PROVIDER || 'local-recognition-adapter', ...analysis });
+    res.json({ ok:true, status:'completed', source:'openai-vision', ...analysis });
   } catch (error) { next(error); }
 });
 
@@ -338,6 +350,7 @@ app.delete('/api/saves/:lookId', requireUser, requireSameOrigin, async (req, res
 
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) return res.status(400).json({ ok:false, error:error.code === 'LIMIT_FILE_SIZE' ? 'file_too_large' : error.code });
+  if (['vision_provider_failed', 'vision_timeout', 'vision_empty_response', 'invalid_vision_result'].includes(error?.message)) return res.status(error.message === 'vision_timeout' ? 504 : 502).json({ ok:false, error:error.message });
   if (error) return res.status(500).json({ ok:false, error:'server_error' });
   res.status(500).json({ ok:false, error:'unknown_error' });
 });

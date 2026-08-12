@@ -52,13 +52,16 @@ DATABASE_URL=postgres://...
 # SUPABASE_URL=https://your-project.supabase.co
 # SUPABASE_SERVICE_ROLE_KEY=server-only-secret
 # SUPABASE_STORAGE_BUCKET=wearwave-user-assets
+# OPENAI_API_KEY=server-only-secret
+# OPENAI_VISION_MODEL=gpt-4o-mini
+# OPENAI_VISION_TIMEOUT_MS=30000
 ```
 
 The server refuses to start in production without `DATABASE_URL` unless `ALLOW_FILE_STORE=true` is explicitly set. The JSON file store is only a local fallback and is not appropriate for a multi-instance deployment.
 
 Production uploads use a private Supabase Storage bucket configured with `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET`. The server keeps only image metadata in the Postgres-backed store and returns short-lived signed URLs. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed to the browser.
 
-The recognition route currently uses a deterministic local adapter. Replace it with an authenticated vision provider behind `/api/analyze`; keep provider keys server-side in environment variables.
+The recognition route uses an authenticated OpenAI vision provider behind `/api/analyze`; keep provider keys server-side in environment variables. Production startup requires `OPENAI_API_KEY`.
 
 The current look images are public Unsplash references. Replace them with licensed, stable, production-hosted assets before public launch.
 

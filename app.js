@@ -2,13 +2,13 @@ const screens = ['guideScreen', 'cameraScreen', 'confirmScreen', 'analysisScreen
 
 const i18n = {
   zh: {
-    ready:'灵感引擎已就绪', account:'登录', logout:'退出登录', loginTitle:'登录 WEARWAVE', registerTitle:'创建 WEARWAVE 账号', loginSub:'登录后，你的收藏会在不同设备间同步。', registerSub:'创建账号后，你的收藏会在不同设备间同步。', emailLabel:'邮箱', passwordLabel:'密码', loginAction:'登录', registerAction:'注册', noAccount:'还没有账号？', hasAccount:'已经有账号？', authRequired:'请先登录后再保存灵感', authSuccess:'登录成功', registerSuccess:'账号创建成功', authError:'操作失败，请检查输入后重试', captureGuide:'拍摄指南', guideLede:'拍下你的单品。WEARWAVE 会从真实街头风格中，找到下一套适合你的穿搭参考。', startCamera:'开始拍摄', uploadInstead:'从电脑上传', noteLight:'光线明亮', noteBackground:'背景干净', noteComplete:'单品完整入镜', footerLine:'为好奇的穿衣者而做', cameraReady:'相机已准备', cameraCapturing:'正在拍摄', cameraSelected:'已选择示例单品', noResults:'没有符合条件的穿搭', captureAgain:'重新选择单品',
+    ready:'灵感引擎已就绪', account:'登录', logout:'退出登录', loginTitle:'登录 WEARWAVE', registerTitle:'创建 WEARWAVE 账号', loginSub:'登录后，你的收藏会在不同设备间同步。', registerSub:'创建账号后，你的收藏会在不同设备间同步。', emailLabel:'邮箱', passwordLabel:'密码', loginAction:'登录', registerAction:'注册', noAccount:'还没有账号？', hasAccount:'已经有账号？', authRequired:'请先登录后再保存灵感', authSuccess:'登录成功', registerSuccess:'账号创建成功', authError:'操作失败，请检查输入后重试', analysisFailed:'分析失败，请检查图片后重试。', notClothing:'这张图片里没有清晰的单件衣物，请重新拍摄。', captureGuide:'拍摄指南', guideLede:'拍下你的单品。WEARWAVE 会从真实街头风格中，找到下一套适合你的穿搭参考。', startCamera:'开始拍摄', uploadInstead:'从电脑上传', noteLight:'光线明亮', noteBackground:'背景干净', noteComplete:'单品完整入镜', footerLine:'为好奇的穿衣者而做', cameraReady:'相机已准备', cameraCapturing:'正在拍摄', cameraSelected:'已选择示例单品', noResults:'没有符合条件的穿搭', captureAgain:'重新选择单品',
     heroTitle:'拍下单品，<br><em>找到合适的穿法。</em>', confirmTitle:'你的单品<br><em>已经被看见。</em>', analysisTitle:'正在读取你的<br><em>风格信号。</em>', resultsTitle:'找到你的<br><em>灵感。</em>',
     lookTitle0:'黑色牛仔裤的<br><em>城市夜行。</em>', lookTitle1:'用一点旧时光，<br><em>重写今天。</em>', lookTitle2:'不按规则穿，<br><em>才像你。</em>', lookTitle3:'少一点，<br><em>更有重量。</em>',
     match94:'匹配 94%', match91:'匹配 91%', match88:'匹配 88%', match84:'匹配 84%', itemTop:'上衣', itemPants:'裤子', itemCap:'帽子', visualStamp:'找<br>到<br>灵感', back:'返回', captureCounter:'拍摄 / 01', centerItem:'将单品放在框内', cameraReady:'相机已准备', cameraTip:'建议单独拍摄一件单品，轮廓越清晰，匹配越准确。', retake:'重新拍摄', itemCounter:'你的单品 / 01', imageItem:'你的单品 / 01', looksLike:'识别结果', confirmSub:'点击任意标签，调整 WEARWAVE 对这件单品的理解。', colorLabel:'颜色', materialLabel:'材质', fitLabel:'版型', typeLabel:'品类', editLabel:'编辑', findLooks:'确认，寻找穿搭', matchEngine:'匹配引擎', stepIdentify:'识别单品轮廓', stepMaterial:'分析颜色与材质', stepMatch:'匹配街头风格', stepFind:'寻找你的下一套', now:'现在', next:'接下来', done:'完成', matchesFor:'匹配结果', itemName:'黑色牛仔宽腿裤', waveWord:'灵感。', looksFound:'找到 04 套穿搭', filter:'筛选', exploreStyle:'探索风格', allStyle:'全部', streetStyle:'街头', vintageStyle:'复古', y2kStyle:'Y2K', minimalStyle:'极简', outdoorStyle:'户外', streetLabel:'街头', vintageLabel:'复古', y2kLabel:'Y2K', minimalLabel:'极简', saveInspo:'保存灵感', viewPost:'查看原帖', yourItem:'你的单品', modalDescription:'这套穿搭从黑色牛仔的宽松轮廓出发，用短款夹克和银色细节把比例拉回城市节奏。', openPost:'打开 Instagram 原帖 ↗', saved:'已保存', savedToast:'已保存到我的灵感', removedToast:'已取消保存', demoSelected:'已选择示例单品', switchedEnglish:'已切换为英文', switchedChinese:'已切换为中文', tagColorValue:'黑色', tagMaterialValue:'牛仔', tagFitValue:'宽腿', tagTypeValue:'裤子', collapseItem:'收起单品'
   },
   en: {
-    ready:'Inspiration engine ready', account:'LOG IN', logout:'LOG OUT', loginTitle:'Log in to WEARWAVE', registerTitle:'Create a WEARWAVE account', loginSub:'Save inspiration and sync it across devices.', registerSub:'Create an account to sync saved inspiration across devices.', emailLabel:'EMAIL', passwordLabel:'PASSWORD', loginAction:'LOG IN', registerAction:'SIGN UP', noAccount:'New to WEARWAVE?', hasAccount:'Already have an account?', authRequired:'Log in to save inspiration', authSuccess:'Logged in', registerSuccess:'Account created', authError:'Something went wrong. Check your details and try again.', captureGuide:'CAPTURE GUIDE', guideLede:'Capture your item. WEARWAVE finds your next outfit reference from real street style.', startCamera:'Start camera', uploadInstead:'Upload from computer', noteLight:'Bright light', noteBackground:'Clean background', noteComplete:'Item in full frame', footerLine:'Made for curious dressers', cameraReady:'Camera ready', cameraCapturing:'Capturing', cameraSelected:'Demo item selected', noResults:'No looks match this filter', captureAgain:'Choose another item',
+    ready:'Inspiration engine ready', account:'LOG IN', logout:'LOG OUT', loginTitle:'Log in to WEARWAVE', registerTitle:'Create a WEARWAVE account', loginSub:'Save inspiration and sync it across devices.', registerSub:'Create an account to sync saved inspiration across devices.', emailLabel:'EMAIL', passwordLabel:'PASSWORD', loginAction:'LOG IN', registerAction:'SIGN UP', noAccount:'New to WEARWAVE?', hasAccount:'Already have an account?', authRequired:'Log in to save inspiration', authSuccess:'Logged in', registerSuccess:'Account created', authError:'Something went wrong. Check your details and try again.', analysisFailed:'Analysis failed. Check the image and try again.', notClothing:'No clear single clothing item was found. Please try another image.', captureGuide:'CAPTURE GUIDE', guideLede:'Capture your item. WEARWAVE finds your next outfit reference from real street style.', startCamera:'Start camera', uploadInstead:'Upload from computer', noteLight:'Bright light', noteBackground:'Clean background', noteComplete:'Item in full frame', footerLine:'Made for curious dressers', cameraReady:'Camera ready', cameraCapturing:'Capturing', cameraSelected:'Demo item selected', noResults:'No looks match this filter', captureAgain:'Choose another item',
     heroTitle:'Photograph an item,<br><em>find a better way to wear it.</em>', confirmTitle:'Your item<br><em>has been seen.</em>', analysisTitle:'Reading your<br><em>style signal.</em>', resultsTitle:'Find your<br><em>wave.</em>',
     lookTitle0:'Black denim,<br><em>after dark.</em>', lookTitle1:'A little history,<br><em>rewritten for today.</em>', lookTitle2:'Dress outside<br><em>the rules.</em>', lookTitle3:'Less,<br><em>with more weight.</em>',
     match94:'MATCH 94%', match91:'MATCH 91%', match88:'MATCH 88%', match84:'MATCH 84%', itemTop:'TOPS', itemPants:'BOTTOMS', itemCap:'HEADWEAR', visualStamp:'FIND<br>YOUR<br>WAVE', back:'Back', captureCounter:'CAPTURE / 01', centerItem:'Place item inside frame', cameraReady:'Camera ready', cameraTip:'Capture one item at a time. Clear silhouettes create better matches.', retake:'Retake', itemCounter:'YOUR ITEM / 01', imageItem:'YOUR ITEM / 01', looksLike:'LOOKS LIKE', confirmSub:'Tap any tag to adjust how WEARWAVE sees your item.', colorLabel:'COLOR', materialLabel:'MATERIAL', fitLabel:'FIT', typeLabel:'TYPE', editLabel:'EDIT', findLooks:'Confirm and find looks', matchEngine:'MATCH ENGINE', stepIdentify:'Reading item silhouette', stepMaterial:'Analyzing color and material', stepMatch:'Matching street style', stepFind:'Finding your next look', now:'NOW', next:'NEXT', done:'DONE', matchesFor:'MATCHES FOR', itemName:'BLACK WIDE-LEG JEANS', waveWord:'wave.', looksFound:'04 looks found', filter:'FILTER', exploreStyle:'EXPLORE STYLE', allStyle:'ALL', streetStyle:'STREET', vintageStyle:'VINTAGE', y2kStyle:'Y2K', minimalStyle:'MINIMAL', outdoorStyle:'OUTDOOR', streetLabel:'STREET', vintageLabel:'VINTAGE', y2kLabel:'Y2K', minimalLabel:'MINIMAL', saveInspo:'Save inspiration', viewPost:'View post', yourItem:'YOUR ITEM', modalDescription:'This look starts with the relaxed shape of black denim, then brings the proportions back into the city rhythm with a cropped jacket and silver details.', openPost:'Open Instagram post ↗', saved:'Saved', savedToast:'Saved to My inspiration', removedToast:'Removed from saved', demoSelected:'Demo item selected', switchedEnglish:'Switched to English', switchedChinese:'Switched to Chinese', tagColorValue:'BLACK', tagMaterialValue:'DENIM', tagFitValue:'WIDE-LEG', tagTypeValue:'BOTTOMS', collapseItem:'Collapse item'
@@ -32,6 +32,7 @@ const state = {
   modalIndex: null,
   cameraBusy: false,
   uploadedAsset: null,
+  visionResult: null,
   user: null,
   authMode: 'login',
   authModalOpen: false
@@ -211,11 +212,26 @@ function runAnalysis() {
       stopAnalysis();
       state.analysisFinishTimer = setTimeout(async () => {
         try {
-          await api.analyze(state.tags, state.uploadedAsset?.id || null);
+          const analysis = await api.analyze(state.tags, state.uploadedAsset?.id || null);
+          state.visionResult = analysis.result || null;
+          if (state.visionResult) {
+            state.tags = {
+              color: state.visionResult.color,
+              material: state.visionResult.material,
+              fit: state.visionResult.fit,
+              type: state.visionResult.itemType
+            };
+            applyLanguage();
+          }
+          if (state.visionResult && !state.visionResult.isClothing) {
+            toast(t('notClothing'));
+            showScreen('confirmScreen');
+            return;
+          }
           showScreen('resultsScreen');
         } catch (error) {
-          toast(state.language === 'zh' ? '分析服务暂时不可用，已载入示例结果' : 'Analysis service unavailable. Demo results loaded.');
-          showScreen('resultsScreen');
+          toast(t('analysisFailed'));
+          showScreen('confirmScreen');
         }
       }, 450);
     }
