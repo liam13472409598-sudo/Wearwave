@@ -105,6 +105,7 @@ test('sends the private signed image URL to the vision provider', async () => {
   assert.equal(body.messages[1].content[0].text, buildVisionUserPrompt({ type: 'pants' }));
   assert.equal(body.messages[1].content[1].image_url.url, 'https://example.supabase.co/signed-image?token=redacted');
   assert.equal(body.messages[1].content[0].type, 'text');
+  assert.equal(body.include_reasoning, false);
   assert.equal(body.response_format, undefined);
   assert.equal(body.temperature, undefined);
 });
@@ -125,6 +126,17 @@ test('parses Nous-style chat completion output', async () => {
     model: 'qwen/qwen3.7-flash',
     imageUrl: 'https://example.com/image.jpg',
     fetchImpl: async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ isClothing: true, confidence: 0.9, itemType: 'shirt', color: 'white', material: 'cotton', fit: 'relaxed', styleTags: ['minimal'], notes: 'White cotton shirt.' }) } }] }), { status: 200 })
+  });
+  assert.equal(result.itemType, 'shirt');
+});
+
+test('parses Nous content parts', async () => {
+  const result = await analyzeImage({
+    apiKey: 'secret',
+    baseUrl: 'https://inference-api.nousresearch.com/v1',
+    model: 'qwen/qwen3.7-flash',
+    imageUrl: 'https://example.com/image.jpg',
+    fetchImpl: async () => new Response(JSON.stringify({ choices: [{ message: { content: [{ type: 'text', text: '{"isClothing":true,"confidence":0.9,"itemType":"shirt","color":"white","material":"cotton","fit":"relaxed","styleTags":["minimal"],"notes":"White cotton shirt."}' }] } }] }), { status: 200 })
   });
   assert.equal(result.itemType, 'shirt');
 });

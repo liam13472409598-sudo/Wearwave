@@ -360,6 +360,10 @@ app.use((error, _req, res, _next) => {
     }));
     return res.status(502).json({ ok:false, error:error.message });
   }
+  if (error?.message === 'vision_empty_response') {
+    console.error('[vision-provider]', JSON.stringify({ baseUrl:visionConfig.baseUrl, model:visionConfig.model, status:error.providerDetails?.status ?? 200, code:error.providerDetails?.code || error.message, message:error.providerDetails?.message || 'Provider returned no parseable content' }));
+    return res.status(502).json({ ok:false, error:error.message });
+  }
   if (['vision_timeout', 'vision_empty_response', 'invalid_vision_result'].includes(error?.message)) return res.status(error.message === 'vision_timeout' ? 504 : 502).json({ ok:false, error:error.message });
   if (error) return res.status(500).json({ ok:false, error:'server_error' });
   res.status(500).json({ ok:false, error:'unknown_error' });

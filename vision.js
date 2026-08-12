@@ -89,12 +89,22 @@ function parseResponseBody(body) {
     const cleaned = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     return JSON.parse(cleaned);
   };
+  const parseParts = value => {
+    if (!Array.isArray(value)) return null;
+    const text = value.map(part => typeof part === 'string' ? part : part?.text || part?.content || '').join('').trim();
+    return text ? parseJsonText(text) : null;
+  };
   if (typeof body?.output_text === 'string') return parseJsonText(body.output_text);
   const text = body?.output?.flatMap(item => item.content || []).find(item => item.type === 'output_text')?.text;
   if (typeof text === 'string') return parseJsonText(text);
-  const chatText = body?.choices?.[0]?.message?.content;
-  if (typeof chatText === 'string') return parseJsonText(chatText);
-  throw new Error('vision_empty_response');
+  const message = body?.choices?.[0]?.message || {};
+  if (typeof message.content === 'string') return parseJsonText(message.content);
+  const contentParts = parseParts(message.content);
+  if (contentParts) return contentParts;
+  if (typeof message.reasoning_content === 'string') return parseJsonText(message.reasoning_content);
+  const error = new Error('vision_empty_response');
+  error.providerDetails = { status: 200, code: 'empty_response', message: JSON.stringify({ topLevelKeys: Object.keys(body || {}).slice(0, 20), choiceKeys: Object.keys(message).slice(0, 20), contentType: Array.isArray(message.content) ? 'array' : typeof message.content }) };
+  throw error;
 }
 
 function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
@@ -113,6 +123,7 @@ function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
         ],
         // Keep the Nous request to the broadly supported multimodal chat shape.
         // The system prompt requests JSON; normalizeVisionResult validates it.
+        include_reasoning: false,
         max_tokens: 500
       }
     };
