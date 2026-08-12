@@ -109,12 +109,16 @@ function parseResponseBody(body) {
   if (body?.output_text != null) return parseContent(body.output_text);
   const text = body?.output?.flatMap(item => item.content || []).find(item => item.type === 'output_text')?.text;
   if (typeof text === 'string') return parseJsonText(text);
-  const message = body?.choices?.[0]?.message || {};
+  const choice = body?.choices?.[0] || {};
+  const choiceContentResult = parseContent(choice.content);
+  if (choiceContentResult) return choiceContentResult;
+  if (choice.reasoning_content != null) return parseContent(choice.reasoning_content);
+  const message = choice.message || {};
   const contentResult = parseContent(message.content);
   if (contentResult) return contentResult;
   if (message.reasoning_content != null) return parseContent(message.reasoning_content);
   const error = new Error('vision_empty_response');
-  error.providerDetails = { status: 200, code: 'empty_response', message: JSON.stringify({ topLevelKeys: Object.keys(body || {}).slice(0, 20), choiceKeys: Object.keys(message).slice(0, 20), contentType: Array.isArray(message.content) ? 'array' : typeof message.content }) };
+  error.providerDetails = { status: 200, code: 'empty_response', message: JSON.stringify({ topLevelKeys: Object.keys(body || {}).slice(0, 20), choiceKeys: Object.keys(choice).slice(0, 20), contentType: Array.isArray(choice.content) ? 'array' : typeof choice.content }) };
   throw error;
 }
 
