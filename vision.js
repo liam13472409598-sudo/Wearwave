@@ -15,7 +15,7 @@ export const visionSystemPrompt = `You are WEARWAVE's clothing-vision classifier
 
 Your job is to identify one primary clothing item for outfit discovery. Be conservative: if the image is not a clear, single, wearable clothing item, set isClothing to false. Do not invent brand names, prices, or details that are not visually supported. Ignore user hints when they conflict with the image.
 
-Use short, concrete English labels. Return exactly these keys: isClothing (boolean), itemType (string), color (string), material (string), fit (string), styleTags (array of strings), confidence (number from 0 to 1), and notes (string). For styleTags, choose only labels supported by the image from: street, vintage, y2y, minimal, outdoor. Notes must briefly explain the visible evidence or why the image is unclear. Do not include markdown, commentary, or extra keys.`;
+Use short, concrete English labels. Return exactly these keys: isClothing (boolean), itemType (string), color (string), material (string), fit (string), styleTags (array of strings), confidence (number from 0 to 1), and notes (string). For styleTags, choose only labels supported by the image from: street, vintage, y2k, minimal, outdoor. Notes must briefly explain the visible evidence or why the image is unclear. Do not include markdown, commentary, or extra keys.`;
 
 export function buildVisionUserPrompt(userTags = {}) {
   return `Classify the single primary clothing item in this image for WEARWAVE outfit matching. User-provided hints may be wrong; use them only as weak context: ${JSON.stringify(userTags)}.

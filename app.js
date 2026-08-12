@@ -31,6 +31,7 @@ const state = {
   analysisFinishTimer: null,
   modalIndex: null,
   cameraBusy: false,
+  cameraStream: null,
   uploadedAsset: null,
   visionResult: null,
   user: null,
@@ -92,6 +93,7 @@ const t = key => i18n[state.language][key] || key;
 
 function showScreen(id) {
   if (id !== 'analysisScreen') stopAnalysis();
+  if (id !== 'cameraScreen') stopCamera();
   screens.forEach(screen => $(screen).classList.toggle('active-screen', screen === id));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -126,6 +128,40 @@ function openDemoConfirmation(message = null) {
 
 function openFilePicker() {
   $('fileInput').click();
+}
+
+function stopCamera() {
+  state.cameraStream?.getTracks().forEach(track => track.stop());
+  state.cameraStream = null;
+  const video = $('cameraVideo');
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+    video.classList.add('hidden');
+  }
+  $('cameraPlaceholder')?.classList.remove('hidden');
+  resetCameraStatus();
+}
+
+async function startCamera() {
+  resetTags();
+  resetCameraStatus();
+  showScreen('cameraScreen');
+  const video = $('cameraVideo');
+  if (!navigator.mediaDevices?.getUserMedia || !video) {
+    toast(state.language === 'zh' ? '当前浏览器不支持相机，请上传图片' : 'Camera unavailable. Upload an image instead.');
+    return;
+  }
+  try {
+    state.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    video.srcObject = state.cameraStream;
+    await video.play();
+    video.classList.remove('hidden');
+    $('cameraPlaceholder')?.classList.add('hidden');
+  } catch (_) {
+    stopCamera();
+    toast(state.language === 'zh' ? '无法访问相机，请允许权限或上传图片' : 'Camera access failed. Allow permission or upload an image.');
+  }
 }
 
 async function handleFile(file) {
@@ -378,16 +414,33 @@ async function hydrateSaves() {
   } catch (_) {}
 }
 
-$('startCameraButton').addEventListener('click', () => { resetTags(); resetCameraStatus(); showScreen('cameraScreen'); });
+$('startCameraButton').addEventListener('click', startCamera);
 $('uploadButton').addEventListener('click', openFilePicker);
-$('cameraUploadButton').addEventListener('click', () => { resetTags(); setCameraStatus('cameraSelected'); openDemoConfirmation(t('demoSelected')); });
+$('cameraUploadButton').addEventListener('click', () => { stopCamera(); resetTags(); openFilePicker(); });
 $('fileInput').addEventListener('change', event => { handleFile(event.target.files?.[0]); event.target.value = ''; });
 $('captureButton').addEventListener('click', () => {
   if (state.cameraBusy) return;
+  const video = $('cameraVideo');
+  if (!state.cameraStream || !video?.videoWidth || !video?.videoHeight) {
+    toast(state.language === 'zh' ? '相机还没有准备好，请上传图片' : 'Camera is not ready. Upload an image instead.');
+    return;
+  }
   state.cameraBusy = true;
   $('cameraFrame')?.classList.add('is-capturing');
   setCameraStatus('cameraCapturing');
-  setTimeout(() => { resetTags(); showScreen('confirmScreen'); }, 280);
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  canvas.toBlob(async blob => {
+    if (!blob) {
+      resetCameraStatus();
+      toast(state.language === 'zh' ? '拍摄失败，请重试' : 'Capture failed. Try again.');
+      return;
+    }
+    stopCamera();
+    await handleFile(new File([blob], `wearwave-capture-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+  }, 'image/jpeg', 0.92);
 });
 $('homeButton').addEventListener('click', () => { closeModal(); showScreen('guideScreen'); });
 document.querySelectorAll('[data-back]').forEach(button => button.addEventListener('click', () => showScreen(button.dataset.back)));
