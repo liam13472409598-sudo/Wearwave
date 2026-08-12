@@ -106,7 +106,11 @@ function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
             { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } }
           ] }
         ],
-        response_format: { type: 'json_schema', json_schema: { name: 'wearwave_clothing_analysis', strict: true, schema: outputSchema } },
+        // Nous advertises response_format support, but not every routed provider
+        // accepts OpenAI's nested json_schema form. json_object is broadly
+        // compatible; normalizeVisionResult remains the final validator.
+        response_format: { type: 'json_object' },
+        temperature: 0,
         max_tokens: 500
       }
     };
