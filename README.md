@@ -48,12 +48,15 @@ Required for production:
 ```text
 NODE_ENV=production
 DATABASE_URL=postgres://...
-UPLOAD_DIR=/persistent/path/uploads
+# UPLOAD_DIR=/persistent/path/uploads
+# SUPABASE_URL=https://your-project.supabase.co
+# SUPABASE_SERVICE_ROLE_KEY=server-only-secret
+# SUPABASE_STORAGE_BUCKET=wearwave-user-assets
 ```
 
 The server refuses to start in production without `DATABASE_URL` unless `ALLOW_FILE_STORE=true` is explicitly set. The JSON file store is only a local fallback and is not appropriate for a multi-instance deployment.
 
-For durable production media, replace the local `UPLOAD_DIR` adapter with S3-compatible storage such as Cloudflare R2, Supabase Storage, or Amazon S3. The current upload route is safe for a single-server MVP but local disk is not durable on ephemeral hosts.
+Production uploads use a private Supabase Storage bucket configured with `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET`. The server keeps only image metadata in the Postgres-backed store and returns short-lived signed URLs. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed to the browser.
 
 The recognition route currently uses a deterministic local adapter. Replace it with an authenticated vision provider behind `/api/analyze`; keep provider keys server-side in environment variables.
 

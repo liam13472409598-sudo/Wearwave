@@ -6,6 +6,8 @@ import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import { fileTypeFromBuffer } from 'file-type';
 import pg from 'pg';
+import { createClient } from '@supabase/supabase-js';
+import { buildAssetPath, getStorageConfig } from './storage.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
@@ -22,8 +24,10 @@ const databaseUrl = process.env.DATABASE_URL || '';
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl, max: Number(process.env.DB_POOL_SIZE || 10), ssl: isProduction ? { rejectUnauthorized: false } : undefined }) : null;
 const sessionCookie = 'wearwave_session';
 const sessionTtlMs = 30 * 24 * 60 * 60 * 1000;
-const maxImageBytes = 10 * 1024 * 1024;
+const maxImageBytes = 6 * 1024 * 1024;
 const allowedImageTypes = new Set(['jpg', 'png', 'webp', 'heic', 'heif']);
+const storageConfig = getStorageConfig(process.env);
+const supabase = storageConfig.enabled ? createClient(storageConfig.url, storageConfig.serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: maxImageBytes, files: 1 }
@@ -42,7 +46,7 @@ async function readStore() {
   if (pool) {
     const result = await pool.query('SELECT data FROM wearwave_store WHERE id = 1');
     if (result.rowCount) return result.rows[0].data;
-    const initial = { users: [], sessions: {}, saves: {}, analyses: [] };
+    const initial = { users: [], sessions: {}, saves: {}, analyses: [], assets: [] };
     await pool.query('INSERT INTO wearwave_store (id, data) VALUES (1, $1::jsonb) ON CONFLICT (id) DO NOTHING', [JSON.stringify(initial)]);
     return initial;
   }
@@ -53,11 +57,12 @@ async function readStore() {
       users: Array.isArray(parsed.users) ? parsed.users : [],
       sessions: parsed.sessions && typeof parsed.sessions === 'object' ? parsed.sessions : {},
       saves: parsed.saves && typeof parsed.saves === 'object' ? parsed.saves : {},
-      analyses: Array.isArray(parsed.analyses) ? parsed.analyses : []
+      analyses: Array.isArray(parsed.analyses) ? parsed.analyses : [],
+      assets: Array.isArray(parsed.assets) ? parsed.assets : []
     };
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
-    const initial = { users: [], sessions: {}, saves: {}, analyses: [] };
+    const initial = { users: [], sessions: {}, saves: {}, analyses: [], assets: [] };
     await fs.writeFile(storePath, JSON.stringify(initial, null, 2));
     return initial;
   }
@@ -131,6 +136,7 @@ function saveKey(req) {
 }
 
 if (isProduction && !databaseUrl && process.env.ALLOW_FILE_STORE !== 'true') throw new Error('DATABASE_URL is required in production');
+if (isProduction && !storageConfig.enabled) throw new Error(`Supabase Storage configuration is incomplete: ${storageConfig.missing.join(', ')}`);
 if (pool) await pool.query('CREATE TABLE IF NOT EXISTS wearwave_store (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
 await fs.mkdir(uploadDir, { recursive: true });
 await fs.mkdir(dataDir, { recursive: true });
@@ -168,7 +174,7 @@ app.get('/api/health', async (_req, res) => {
     try { await pool.query('SELECT 1'); database = 'postgres'; }
     catch (_) { return res.status(503).json({ ok:false, service:'wearwave', error:'database_unavailable' }); }
   }
-  res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend', database });
+  res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend', database, storage:storageConfig.enabled ? 'supabase' : 'local' });
 });
 
 app.post('/api/auth/register', authLimiter, requireSameOrigin, async (req, res, next) => {
@@ -228,15 +234,56 @@ app.get('/api/auth/me', async (req, res, next) => {
   try { res.json({ ok:true, user:publicUser(await getCurrentUser(req)) }); } catch (error) { next(error); }
 });
 
-app.post('/api/uploads', uploadLimiter, requireSameOrigin, upload.single('image'), async (req, res, next) => {
+app.post('/api/uploads', uploadLimiter, requireSameOrigin, requireUser, upload.single('image'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ ok:false, error:'image_required' });
     const detected = await fileTypeFromBuffer(req.file.buffer);
     if (!detected || !allowedImageTypes.has(detected.ext)) return res.status(415).json({ ok:false, error:'unsupported_image_type' });
-    const extension = detected.ext === 'jpg' ? '.jpg' : `.${detected.ext}`;
-    const filename = `${Date.now()}-${crypto.randomUUID()}${extension}`;
-    await fs.writeFile(path.join(uploadDir, filename), req.file.buffer, { flag:'wx' });
-    res.status(201).json({ ok:true, asset:{ id:path.basename(filename, extension), url:`/uploads/${filename}`, originalName:req.file.originalname, mimeType:detected.mime, size:req.file.size } });
+    if (!supabase) return res.status(503).json({ ok:false, error:'storage_unavailable' });
+    const assetId = crypto.randomUUID();
+    const storagePath = buildAssetPath(req.user.id, assetId, detected.ext);
+    const { error: uploadError } = await supabase.storage.from(storageConfig.bucket).upload(storagePath, req.file.buffer, { contentType: detected.mime, upsert: false });
+    if (uploadError) return res.status(502).json({ ok:false, error:'storage_upload_failed' });
+    const { data: signed, error: signedError } = await supabase.storage.from(storageConfig.bucket).createSignedUrl(storagePath, 900);
+    if (signedError) {
+      await supabase.storage.from(storageConfig.bucket).remove([storagePath]);
+      return res.status(502).json({ ok:false, error:'storage_url_failed' });
+    }
+    const store = await readStore();
+    store.assets = Array.isArray(store.assets) ? store.assets : [];
+    store.assets.push({ id:assetId, userId:req.user.id, storagePath, originalName:req.file.originalname, mimeType:detected.mime, size:req.file.size, createdAt:new Date().toISOString() });
+    try {
+      await writeStore(store);
+    } catch (error) {
+      await supabase.storage.from(storageConfig.bucket).remove([storagePath]);
+      throw error;
+    }
+    res.status(201).json({ ok:true, asset:{ id:assetId, url:signed.signedUrl, originalName:req.file.originalname, mimeType:detected.mime, size:req.file.size } });
+  } catch (error) { next(error); }
+});
+
+app.get('/api/assets/:assetId', requireUser, async (req, res, next) => {
+  try {
+    const store = await readStore();
+    const asset = (store.assets || []).find(item => item.id === req.params.assetId && item.userId === req.user.id && !item.deletedAt);
+    if (!asset) return res.status(404).json({ ok:false, error:'asset_not_found' });
+    const { data, error } = await supabase.storage.from(storageConfig.bucket).createSignedUrl(asset.storagePath, 900);
+    if (error) return res.status(502).json({ ok:false, error:'storage_url_failed' });
+    res.json({ ok:true, asset:{ id:asset.id, url:data.signedUrl, originalName:asset.originalName, mimeType:asset.mimeType, size:asset.size, createdAt:asset.createdAt } });
+  } catch (error) { next(error); }
+});
+
+app.delete('/api/assets/:assetId', requireUser, requireSameOrigin, async (req, res, next) => {
+  try {
+    if (!supabase) return res.status(503).json({ ok:false, error:'storage_unavailable' });
+    const store = await readStore();
+    const asset = (store.assets || []).find(item => item.id === req.params.assetId && item.userId === req.user.id && !item.deletedAt);
+    if (!asset) return res.status(404).json({ ok:false, error:'asset_not_found' });
+    const { error } = await supabase.storage.from(storageConfig.bucket).remove([asset.storagePath]);
+    if (error) return res.status(502).json({ ok:false, error:'storage_delete_failed' });
+    asset.deletedAt = new Date().toISOString();
+    await writeStore(store);
+    res.json({ ok:true, deleted:true });
   } catch (error) { next(error); }
 });
 

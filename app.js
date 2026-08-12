@@ -56,8 +56,8 @@ const api = {
     if (!response.ok) throw new Error('health_failed');
     return response.json();
   },
-  async analyze(tags) {
-    const response = await fetch('/api/analyze', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ tags }) });
+  async analyze(tags, assetId = null) {
+    const response = await fetch('/api/analyze', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ tags, assetId }) });
     if (!response.ok) throw new Error('analysis_failed');
     return response.json();
   },
@@ -129,6 +129,11 @@ function openFilePicker() {
 
 async function handleFile(file) {
   if (!file) return;
+  if (!state.user) {
+    toast(t('authRequired'));
+    openAuth();
+    return;
+  }
   if (!file.type.startsWith('image/')) {
     toast(state.language === 'zh' ? '请选择图片文件' : 'Choose an image file');
     return;
@@ -206,7 +211,7 @@ function runAnalysis() {
       stopAnalysis();
       state.analysisFinishTimer = setTimeout(async () => {
         try {
-          await api.analyze({ ...state.tags, assetId: state.uploadedAsset?.id || null });
+          await api.analyze(state.tags, state.uploadedAsset?.id || null);
           showScreen('resultsScreen');
         } catch (error) {
           toast(state.language === 'zh' ? '分析服务暂时不可用，已载入示例结果' : 'Analysis service unavailable. Demo results loaded.');
