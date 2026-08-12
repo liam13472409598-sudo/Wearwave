@@ -151,3 +151,14 @@ test('parses Nous object content wrapper', async () => {
   });
   assert.equal(result.itemType, 'jacket');
 });
+
+test('parses nested Nous message content', async () => {
+  const result = await analyzeImage({
+    apiKey: 'secret',
+    baseUrl: 'https://inference-api.nousresearch.com/v1',
+    model: 'qwen/qwen3.7-flash',
+    imageUrl: 'https://example.com/image.jpg',
+    fetchImpl: async () => new Response(JSON.stringify({ choices: [{ index: 0, message: { role: 'assistant', content: { isClothing: true, confidence: 0.8, itemType: 'coat', color: 'navy', material: 'wool', fit: 'regular', styleTags: ['minimal'], notes: 'Navy wool coat.' } }, finish_reason: 'stop' }] }), { status: 200 })
+  });
+  assert.equal(result.itemType, 'coat');
+});
