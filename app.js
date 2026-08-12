@@ -35,6 +35,7 @@ const state = {
   uploadedAsset: null,
   pendingFile: null,
   visionResult: null,
+  analysisReady: false,
   user: null,
   authMode: 'login',
   authModalOpen: false
@@ -61,8 +62,13 @@ const api = {
   },
   async analyze(tags, assetId = null) {
     const response = await fetch('/api/analyze', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ tags, assetId }) });
-    if (!response.ok) throw new Error('analysis_failed');
-    return response.json();
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(result.error || 'analysis_failed');
+      error.status = response.status;
+      throw error;
+    }
+    return result;
   },
   async upload(file) {
     const body = new FormData();
@@ -216,9 +222,12 @@ async function handleFile(file) {
   try {
     const result = await api.upload(file);
     state.uploadedAsset = result.asset;
+    state.visionResult = null;
+    state.analysisReady = false;
     document.querySelectorAll('.item-photo').forEach(el => { el.style.backgroundImage = `url(${result.asset.url})`; });
     toast(state.language === 'zh' ? '图片已上传' : 'Image uploaded');
-    showScreen('confirmScreen');
+    showScreen('analysisScreen');
+    runAnalysis('confirmScreen');
   } catch (error) {
     toast(state.language === 'zh' ? '上传失败，请重试' : 'Upload failed, please try again');
   }
@@ -268,7 +277,7 @@ function setAnalysisStep(index) {
   });
 }
 
-function runAnalysis() {
+function runAnalysis(nextScreen = 'resultsScreen') {
   stopAnalysis();
   const bar = $('analysisBar');
   state.analysisIndex = 0;
@@ -298,15 +307,17 @@ function runAnalysis() {
             renderVisionResult();
           }
           if (!state.visionResult) throw new Error('analysis_missing_result');
+          state.analysisReady = true;
           if (state.visionResult && !state.visionResult.isClothing) {
             toast(t('notClothing'));
             showScreen('confirmScreen');
             return;
           }
-          showScreen('resultsScreen');
+          showScreen(nextScreen);
         } catch (error) {
           console.error('[analysis-ui]', error);
-          toast(t('analysisFailed'));
+          state.analysisReady = false;
+          toast(`${t('analysisFailed')} ${error.message || ''}`.trim());
           showScreen('confirmScreen');
         }
       }, 450);
@@ -350,6 +361,7 @@ function countVisibleCards() {
 function startTagEdit(tag) {
   if (tag.querySelector('input')) return;
   const key = tag.dataset.tagKey;
+  state.analysisReady = false;
   const valueEl = tag.querySelector('.tag-value');
   const original = Object.prototype.hasOwnProperty.call(state.tags, key) ? state.tags[key] : valueEl.textContent;
   const input = document.createElement('input');
@@ -506,8 +518,13 @@ $('confirmItemButton').addEventListener('click', () => {
     showScreen('guideScreen');
     return;
   }
+  if (state.analysisReady) {
+    renderVisionResult();
+    showScreen('resultsScreen');
+    return;
+  }
   showScreen('analysisScreen');
-  runAnalysis();
+  runAnalysis('resultsScreen');
 });
 $('filterButton').addEventListener('click', () => {
   const panel = $('filterPanel');
