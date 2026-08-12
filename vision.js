@@ -84,11 +84,16 @@ const outputSchema = {
 };
 
 function parseResponseBody(body) {
-  if (typeof body?.output_text === 'string') return JSON.parse(body.output_text);
+  const parseJsonText = value => {
+    if (typeof value !== 'string') return null;
+    const cleaned = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    return JSON.parse(cleaned);
+  };
+  if (typeof body?.output_text === 'string') return parseJsonText(body.output_text);
   const text = body?.output?.flatMap(item => item.content || []).find(item => item.type === 'output_text')?.text;
-  if (typeof text === 'string') return JSON.parse(text);
+  if (typeof text === 'string') return parseJsonText(text);
   const chatText = body?.choices?.[0]?.message?.content;
-  if (typeof chatText === 'string') return JSON.parse(chatText);
+  if (typeof chatText === 'string') return parseJsonText(chatText);
   throw new Error('vision_empty_response');
 }
 
@@ -103,14 +108,11 @@ function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
           { role: 'system', content: visionSystemPrompt },
           { role: 'user', content: [
             { type: 'text', text: buildVisionUserPrompt(userTags) },
-            { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } }
+            { type: 'image_url', image_url: { url: imageUrl } }
           ] }
         ],
-        // Nous advertises response_format support, but not every routed provider
-        // accepts OpenAI's nested json_schema form. json_object is broadly
-        // compatible; normalizeVisionResult remains the final validator.
-        response_format: { type: 'json_object' },
-        temperature: 0,
+        // Keep the Nous request to the broadly supported multimodal chat shape.
+        // The system prompt requests JSON; normalizeVisionResult validates it.
         max_tokens: 500
       }
     };
