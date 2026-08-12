@@ -17,6 +17,15 @@ function boundedString(value, maxLength = 120) {
   return String(value || '').trim().slice(0, maxLength);
 }
 
+export function summarizeVisionProviderError(body = {}, status = 0) {
+  const source = body?.error && typeof body.error === 'object' ? body.error : body;
+  return {
+    status: Number(status) || null,
+    code: boundedString(source?.code || source?.type || `http_${status}`, 80),
+    message: boundedString(source?.message || source?.error || 'Vision provider request failed', 240)
+  };
+}
+
 export function normalizeVisionResult(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid_vision_result');
   const result = {
@@ -75,8 +84,12 @@ export async function analyzeImage({ apiKey, model = DEFAULT_MODEL, imageUrl, us
         max_output_tokens: 500
       })
     });
-    if (!response.ok) throw new Error('vision_provider_failed');
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error('vision_provider_failed');
+      error.providerDetails = summarizeVisionProviderError(body, response.status);
+      throw error;
+    }
     return normalizeVisionResult(parseResponseBody(body));
   } catch (error) {
     if (error?.name === 'AbortError') throw new Error('vision_timeout');

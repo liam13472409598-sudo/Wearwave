@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getVisionConfig, normalizeVisionResult, analyzeImage } from '../vision.js';
+import { getVisionConfig, normalizeVisionResult, analyzeImage, summarizeVisionProviderError } from '../vision.js';
+
+test('summarizes provider errors without exposing credentials', () => {
+  assert.deepEqual(summarizeVisionProviderError({ error: { code: 'invalid_api_key', message: 'Incorrect API key provided' } }, 401), {
+    status: 401,
+    code: 'invalid_api_key',
+    message: 'Incorrect API key provided'
+  });
+});
 
 test('requires an OpenAI vision key in production', () => {
   const result = getVisionConfig({ NODE_ENV: 'production', OPENAI_API_KEY: 'secret' });
@@ -83,5 +91,5 @@ test('turns provider failures into a stable error', async () => {
     model: 'gpt-4o-mini',
     imageUrl: 'https://example.com/image.jpg',
     fetchImpl: async () => new Response('{"error":"bad"}', { status: 401 })
-  }), /vision_provider_failed/);
+  }), error => error.message === 'vision_provider_failed' && error.providerDetails.status === 401 && error.providerDetails.message === 'bad');
 });
