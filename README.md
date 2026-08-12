@@ -52,8 +52,9 @@ DATABASE_URL=postgres://...
 # SUPABASE_URL=https://your-project.supabase.co
 # SUPABASE_SERVICE_ROLE_KEY=server-only-secret
 # SUPABASE_STORAGE_BUCKET=wearwave-user-assets
-# OPENAI_API_KEY=server-only-secret
-# OPENAI_VISION_MODEL=gpt-4o-mini
+# NOUS_PORTAL_API_KEY=server-only-secret
+# OPENAI_BASE_URL=https://inference-api.nousresearch.com/v1
+# OPENAI_VISION_MODEL=qwen/qwen3.7-flash
 # OPENAI_VISION_TIMEOUT_MS=30000
 ```
 
@@ -61,7 +62,7 @@ The server refuses to start in production without `DATABASE_URL` unless `ALLOW_F
 
 Production uploads use a private Supabase Storage bucket configured with `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET`. The server keeps only image metadata in the Postgres-backed store and returns short-lived signed URLs. `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed to the browser.
 
-The recognition route uses an authenticated OpenAI vision provider behind `/api/analyze`; keep provider keys server-side in environment variables. Production startup requires `OPENAI_API_KEY`.
+The recognition route uses an authenticated OpenAI-compatible vision provider behind `/api/analyze`; Nous Portal can be configured with `NOUS_PORTAL_API_KEY`, `OPENAI_BASE_URL=https://inference-api.nousresearch.com/v1`, and the low-cost multimodal model `qwen/qwen3.7-flash`. Keep provider keys server-side in environment variables. Production startup requires `OPENAI_API_KEY` or `NOUS_PORTAL_API_KEY`.
 
 The current look images are public Unsplash references. Replace them with licensed, stable, production-hosted assets before public launch.
 

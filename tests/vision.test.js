@@ -21,13 +21,22 @@ test('requires an OpenAI vision key in production', () => {
   const result = getVisionConfig({ NODE_ENV: 'production', OPENAI_API_KEY: 'secret' });
   assert.equal(result.enabled, true);
   assert.equal(result.model, 'gpt-4o-mini');
+  assert.equal(result.baseUrl, 'https://api.openai.com/v1');
   assert.deepEqual(result.missing, []);
+});
+
+test('supports Nous Portal credentials and selects a low-cost vision model', () => {
+  const result = getVisionConfig({ NOUS_PORTAL_API_KEY: 'portal-secret', OPENAI_BASE_URL: 'https://inference-api.nousresearch.com/v1' });
+  assert.equal(result.enabled, true);
+  assert.equal(result.apiKey, 'portal-secret');
+  assert.equal(result.model, 'qwen/qwen3.7-flash');
+  assert.equal(result.baseUrl, 'https://inference-api.nousresearch.com/v1');
 });
 
 test('reports missing vision configuration', () => {
   const result = getVisionConfig({ NODE_ENV: 'production' });
   assert.equal(result.enabled, false);
-  assert.deepEqual(result.missing, ['OPENAI_API_KEY']);
+  assert.deepEqual(result.missing, ['OPENAI_API_KEY or NOUS_PORTAL_API_KEY']);
 });
 
 test('normalizes and bounds a valid vision result', () => {
@@ -79,13 +88,14 @@ test('sends the private signed image URL to the vision provider', async () => {
   const result = await analyzeImage({
     apiKey: 'secret',
     model: 'gpt-4o-mini',
+    baseUrl: 'https://inference-api.nousresearch.com/v1',
     imageUrl: 'https://example.supabase.co/signed-image?token=redacted',
     userTags: { type: 'pants' },
     fetchImpl: fakeFetch
   });
 
   assert.equal(result.itemType, 'jeans');
-  assert.equal(request.url, 'https://api.openai.com/v1/responses');
+  assert.equal(request.url, 'https://inference-api.nousresearch.com/v1/responses');
   assert.equal(request.options.headers.Authorization, 'Bearer secret');
   const body = JSON.parse(request.options.body);
   assert.equal(body.model, 'gpt-4o-mini');

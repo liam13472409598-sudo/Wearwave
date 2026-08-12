@@ -1,5 +1,8 @@
-const DEFAULT_MODEL = 'gpt-4o-mini';
-const REQUIRED_VISION_VARS = ['OPENAI_API_KEY'];
+const OPENAI_BASE_URL = 'https://api.openai.com/v1';
+const NOUS_BASE_URL = 'https://inference-api.nousresearch.com/v1';
+const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
+const NOUS_DEFAULT_MODEL = 'qwen/qwen3.7-flash';
+const REQUIRED_VISION_VARS = ['OPENAI_API_KEY or NOUS_PORTAL_API_KEY'];
 const allowedStyles = new Set(['street', 'vintage', 'y2k', 'minimal', 'outdoor']);
 
 export const visionSystemPrompt = `You are WEARWAVE's clothing-vision classifier. Analyze only the clothing item in the supplied image; never identify, describe, or infer the person's identity, age, body, attractiveness, ethnicity, or other sensitive traits. Return only the JSON object required by the schema.
@@ -15,12 +18,16 @@ Inspect these properties when visible: garment category, dominant color, materia
 }
 
 export function getVisionConfig(env = process.env) {
-  const missing = REQUIRED_VISION_VARS.filter(name => !String(env[name] || '').trim());
+  const apiKey = String(env.OPENAI_API_KEY || env.NOUS_PORTAL_API_KEY || env.NOUS_API_KEY || '').trim();
+  const baseUrl = String(env.OPENAI_BASE_URL || env.NOUS_BASE_URL || OPENAI_BASE_URL).trim().replace(/\/+$/, '');
+  const isNous = baseUrl === NOUS_BASE_URL || baseUrl.includes('inference-api.nousresearch.com');
+  const missing = apiKey ? [] : REQUIRED_VISION_VARS;
   return {
     enabled: missing.length === 0,
     missing,
-    apiKey: String(env.OPENAI_API_KEY || '').trim(),
-    model: String(env.OPENAI_VISION_MODEL || DEFAULT_MODEL).trim() || DEFAULT_MODEL,
+    apiKey,
+    baseUrl,
+    model: String(env.OPENAI_VISION_MODEL || (isNous ? NOUS_DEFAULT_MODEL : OPENAI_DEFAULT_MODEL)).trim() || (isNous ? NOUS_DEFAULT_MODEL : OPENAI_DEFAULT_MODEL),
     timeoutMs: Math.min(Math.max(Number(env.OPENAI_VISION_TIMEOUT_MS || 30000), 5000), 60000)
   };
 }
@@ -77,12 +84,12 @@ function parseResponseBody(body) {
   throw new Error('vision_empty_response');
 }
 
-export async function analyzeImage({ apiKey, model = DEFAULT_MODEL, imageUrl, userTags = {}, fetchImpl = fetch, timeoutMs = 30000 }) {
+export async function analyzeImage({ apiKey, baseUrl = OPENAI_BASE_URL, model = OPENAI_DEFAULT_MODEL, imageUrl, userTags = {}, fetchImpl = fetch, timeoutMs = 30000 }) {
   if (!apiKey || !imageUrl) throw new Error('vision_input_missing');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetchImpl('https://api.openai.com/v1/responses', {
+    const response = await fetchImpl(`${String(baseUrl).replace(/\/+$/, '')}/responses`, {
       method: 'POST',
       signal: controller.signal,
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -113,4 +120,4 @@ export async function analyzeImage({ apiKey, model = DEFAULT_MODEL, imageUrl, us
 }
 
 export const visionOutputSchema = outputSchema;
-export const defaultVisionModel = DEFAULT_MODEL;
+export const defaultVisionModel = OPENAI_DEFAULT_MODEL;

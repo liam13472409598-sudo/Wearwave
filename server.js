@@ -139,7 +139,7 @@ function saveKey(req) {
 
 if (isProduction && !databaseUrl && process.env.ALLOW_FILE_STORE !== 'true') throw new Error('DATABASE_URL is required in production');
 if (isProduction && !storageConfig.enabled) throw new Error(`Supabase Storage configuration is incomplete: ${storageConfig.missing.join(', ')}`);
-if (isProduction && !visionConfig.enabled) throw new Error(`Vision configuration is incomplete: ${visionConfig.missing.join(', ')}`);
+if (isProduction && !visionConfig.enabled) throw new Error(`Vision configuration is incomplete: set OPENAI_API_KEY or NOUS_PORTAL_API_KEY in Render Environment`);
 if (pool) await pool.query('CREATE TABLE IF NOT EXISTS wearwave_store (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
 await fs.mkdir(uploadDir, { recursive: true });
 await fs.mkdir(dataDir, { recursive: true });
@@ -309,7 +309,7 @@ app.post('/api/analyze', requireSameOrigin, async (req, res, next) => {
     if (!supabase) return res.status(503).json({ ok:false, error:'storage_unavailable' });
     const { data: signed, error: signedError } = await supabase.storage.from(storageConfig.bucket).createSignedUrl(asset.storagePath, 300);
     if (signedError) return res.status(502).json({ ok:false, error:'storage_url_failed' });
-    const result = await analyzeImage({ apiKey:visionConfig.apiKey, model:visionConfig.model, imageUrl:signed.signedUrl, userTags:req.body?.tags || {}, timeoutMs:visionConfig.timeoutMs });
+    const result = await analyzeImage({ apiKey:visionConfig.apiKey, baseUrl:visionConfig.baseUrl, model:visionConfig.model, imageUrl:signed.signedUrl, userTags:req.body?.tags || {}, timeoutMs:visionConfig.timeoutMs });
     const analysis = { id:crypto.randomUUID(), createdAt:new Date().toISOString(), userId:req.user.id, assetId, result, lookIds:lookCatalog.map(look => look.id) };
     store.analyses = Array.isArray(store.analyses) ? store.analyses : [];
     store.analyses.push(analysis);
@@ -351,7 +351,7 @@ app.delete('/api/saves/:lookId', requireUser, requireSameOrigin, async (req, res
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) return res.status(400).json({ ok:false, error:error.code === 'LIMIT_FILE_SIZE' ? 'file_too_large' : error.code });
   if (error?.message === 'vision_provider_failed') {
-    console.error('[vision-provider]', JSON.stringify({ model:visionConfig.model, ...error.providerDetails }));
+    console.error('[vision-provider]', JSON.stringify({ baseUrl:visionConfig.baseUrl, model:visionConfig.model, ...error.providerDetails }));
     return res.status(502).json({ ok:false, error:error.message });
   }
   if (['vision_timeout', 'vision_empty_response', 'invalid_vision_result'].includes(error?.message)) return res.status(error.message === 'vision_timeout' ? 504 : 502).json({ ok:false, error:error.message });
