@@ -164,3 +164,13 @@ test('parses nested Nous message content', async () => {
   });
   assert.equal(result.itemType, 'coat');
 });
+
+test('preserves validation diagnostics instead of mislabeling them as network errors', async () => {
+  await assert.rejects(() => analyzeImage({
+    apiKey: 'secret',
+    baseUrl: 'https://inference-api.nousresearch.com/v1',
+    model: 'qwen/qwen3.7-flash',
+    imageUrl: 'https://example.com/image.jpg',
+    fetchImpl: async () => new Response(JSON.stringify({ choices: [{ message: { content: { itemType: 'shirt' } } }] }), { status: 200 })
+  }), error => error.message === 'invalid_vision_result' && error.providerDetails.code === 'invalid_vision_result' && error.providerDetails.message.includes('itemType'));
+});

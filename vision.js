@@ -67,6 +67,14 @@ export function normalizeVisionResult(value) {
   return result;
 }
 
+function summarizeVisionValue(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { type: typeof value };
+  return {
+    keys: Object.keys(value).slice(0, 20),
+    types: Object.fromEntries(Object.keys(value).slice(0, 20).map(key => [key, Array.isArray(value[key]) ? 'array' : typeof value[key]]))
+  };
+}
+
 const outputSchema = {
   type: 'object',
   properties: {
@@ -191,10 +199,17 @@ export async function analyzeImage({ apiKey, baseUrl = OPENAI_BASE_URL, model = 
       error.providerDetails = summarizeVisionProviderError(body, response.status);
       throw error;
     }
-    return normalizeVisionResult(parseResponseBody(body));
+    const parsed = parseResponseBody(body);
+    try {
+      return normalizeVisionResult(parsed);
+    } catch {
+      const validationError = new Error('invalid_vision_result');
+      validationError.providerDetails = { status: response.status, code: 'invalid_vision_result', message: JSON.stringify(summarizeVisionValue(parsed)) };
+      throw validationError;
+    }
   } catch (error) {
     if (error?.name === 'AbortError') throw new Error('vision_timeout');
-    if (/^vision_/.test(error?.message || '')) throw error;
+    if (/^vision_/.test(error?.message || '') || error?.message === 'invalid_vision_result') throw error;
     const providerError = new Error('vision_provider_failed');
     providerError.providerDetails = summarizeVisionProviderError({ type: error?.code || 'network_error', message: error?.message || 'Network request failed' }, 0);
     throw providerError;
