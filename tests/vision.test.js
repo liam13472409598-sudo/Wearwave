@@ -67,6 +67,29 @@ test('rejects non-object or incomplete vision output', () => {
   assert.throws(() => normalizeVisionResult(null), /invalid_vision_result/);
 });
 
+test('normalizes Nous category aliases and object-valued fields', () => {
+  const result = normalizeVisionResult({
+    isClothing: true,
+    confidence: 0.88,
+    category: { value: 'jacket' },
+    color: { label: 'black' },
+    material: { text: 'denim' },
+    fit: { name: 'relaxed' },
+    styleTags: [{ value: 'street' }],
+    notes: { description: 'Black denim jacket.' }
+  });
+  assert.deepEqual(result, {
+    isClothing: true,
+    confidence: 0.88,
+    itemType: 'jacket',
+    color: 'black',
+    material: 'denim',
+    fit: 'relaxed',
+    styleTags: ['street'],
+    notes: 'Black denim jacket.'
+  });
+});
+
 test('sends the private signed image URL to the vision provider', async () => {
   let request;
   const fakeFetch = async (url, options) => {

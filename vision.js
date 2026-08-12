@@ -15,7 +15,7 @@ export const visionSystemPrompt = `You are WEARWAVE's clothing-vision classifier
 
 Your job is to identify one primary clothing item for outfit discovery. Be conservative: if the image is not a clear, single, wearable clothing item, set isClothing to false. Do not invent brand names, prices, or details that are not visually supported. Ignore user hints when they conflict with the image.
 
-Use short, concrete English labels. For styleTags, choose only labels supported by the image from: street, vintage, y2k, minimal, outdoor. Confidence must be between 0 and 1. Notes must briefly explain the visible evidence or why the image is unclear. Do not include markdown, commentary, or extra keys.`;
+Use short, concrete English labels. Return exactly these keys: isClothing (boolean), itemType (string), color (string), material (string), fit (string), styleTags (array of strings), confidence (number from 0 to 1), and notes (string). For styleTags, choose only labels supported by the image from: street, vintage, y2y, minimal, outdoor. Notes must briefly explain the visible evidence or why the image is unclear. Do not include markdown, commentary, or extra keys.`;
 
 export function buildVisionUserPrompt(userTags = {}) {
   return `Classify the single primary clothing item in this image for WEARWAVE outfit matching. User-provided hints may be wrong; use them only as weak context: ${JSON.stringify(userTags)}.
@@ -38,8 +38,22 @@ export function getVisionConfig(env = process.env) {
   };
 }
 
+function textValue(value, depth = 0) {
+  if (depth > 4 || value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value).trim();
+  if (Array.isArray(value)) return value.map(item => textValue(item, depth + 1)).filter(Boolean).join(', ');
+  if (typeof value === 'object') {
+    for (const key of ['value', 'text', 'label', 'name', 'description', 'category', 'color', 'material', 'fit', 'type']) {
+      const text = textValue(value[key], depth + 1);
+      if (text) return text;
+    }
+    return Object.values(value).map(item => textValue(item, depth + 1)).filter(Boolean).join(', ');
+  }
+  return '';
+}
+
 function boundedString(value, maxLength = 120) {
-  return String(value || '').trim().slice(0, maxLength);
+  return textValue(value).slice(0, maxLength);
 }
 
 export function summarizeVisionProviderError(body = {}, status = 0) {
@@ -56,7 +70,7 @@ export function normalizeVisionResult(value) {
   const result = {
     isClothing: value.isClothing === true,
     confidence: Math.min(1, Math.max(0, Number(value.confidence))),
-    itemType: boundedString(value.itemType),
+    itemType: boundedString(value.itemType ?? value.category),
     color: boundedString(value.color),
     material: boundedString(value.material),
     fit: boundedString(value.fit),
@@ -115,7 +129,7 @@ function parseResponseBody(body) {
       return null;
     }
     if (typeof value !== 'object') return null;
-    if ('isClothing' in value || 'itemType' in value || 'styleTags' in value) return value;
+    if ('isClothing' in value || 'itemType' in value || 'category' in value || 'styleTags' in value) return value;
     for (const key of ['output_text', 'content', 'text', 'parts', 'reasoning_content', 'message', 'choices', 'output']) {
       if (value[key] != null) {
         const result = findResult(value[key], depth + 1);
