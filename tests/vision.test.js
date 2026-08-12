@@ -147,7 +147,7 @@ test('parses Nous object content wrapper', async () => {
     baseUrl: 'https://inference-api.nousresearch.com/v1',
     model: 'qwen/qwen3.7-flash',
     imageUrl: 'https://example.com/image.jpg',
-    fetchImpl: async () => new Response(JSON.stringify({ choices: [{ role: 'assistant', content: { text: '{"isClothing":true,"confidence":0.9,"itemType":"jacket","color":"black","material":"denim","fit":"relaxed","styleTags":["street"],"notes":"Black denim jacket." }' } }] }), { status: 200 })
+    fetchImpl: async () => new Response(JSON.stringify({ choices: [{ role: 'assistant', content: { isClothing: true, confidence: 0.9, itemType: 'jacket', color: 'black', material: 'denim', fit: 'relaxed', styleTags: ['street'], notes: 'Black denim jacket.' } }] }), { status: 200 })
   });
   assert.equal(result.itemType, 'jacket');
 });

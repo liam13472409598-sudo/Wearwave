@@ -103,6 +103,7 @@ function parseResponseBody(body) {
     return '';
   };
   const parseContent = value => {
+    if (value && typeof value === 'object' && !Array.isArray(value) && ('isClothing' in value || 'itemType' in value || 'styleTags' in value)) return value;
     const text = extractText(value).trim();
     return text ? parseJsonText(text) : null;
   };
