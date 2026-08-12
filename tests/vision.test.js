@@ -105,7 +105,9 @@ test('sends the private signed image URL to the vision provider', async () => {
   assert.equal(body.messages[1].content[0].text, buildVisionUserPrompt({ type: 'pants' }));
   assert.equal(body.messages[1].content[1].image_url.url, 'https://example.supabase.co/signed-image?token=redacted');
   assert.equal(body.messages[1].content[0].type, 'text');
+  assert.deepEqual(body.reasoning, { effort: 'none' });
   assert.equal(body.include_reasoning, false);
+  assert.equal(body.max_tokens, 800);
   assert.equal(body.response_format, undefined);
   assert.equal(body.temperature, undefined);
 });

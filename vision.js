@@ -150,10 +150,12 @@ function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
             { type: 'image_url', image_url: { url: imageUrl } }
           ] }
         ],
-        // Keep the Nous request to the broadly supported multimodal chat shape.
-        // The system prompt requests JSON; normalizeVisionResult validates it.
+        // Qwen3.7 Flash enables thinking by default. With a small output budget,
+        // it can spend the entire completion on hidden reasoning and return an
+        // empty content object. Disable reasoning explicitly for this classifier.
+        reasoning: { effort: 'none' },
         include_reasoning: false,
-        max_tokens: 500
+        max_tokens: 800
       }
     };
   }
