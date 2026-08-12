@@ -33,6 +33,7 @@ const state = {
   cameraBusy: false,
   cameraStream: null,
   uploadedAsset: null,
+  pendingFile: null,
   visionResult: null,
   user: null,
   authMode: 'login',
@@ -152,6 +153,11 @@ function openDemoConfirmation(message = null) {
 }
 
 function openFilePicker() {
+  if (!state.user) {
+    toast(t('authRequired'));
+    openAuth();
+    return;
+  }
   $('fileInput').click();
 }
 
@@ -169,6 +175,11 @@ function stopCamera() {
 }
 
 async function startCamera() {
+  if (!state.user) {
+    toast(t('authRequired'));
+    openAuth();
+    return;
+  }
   resetTags();
   resetCameraStatus();
   showScreen('cameraScreen');
@@ -192,6 +203,7 @@ async function startCamera() {
 async function handleFile(file) {
   if (!file) return;
   if (!state.user) {
+    state.pendingFile = file;
     toast(t('authRequired'));
     openAuth();
     return;
@@ -425,6 +437,11 @@ async function submitAuth(event) {
     renderAuthModal();
     await hydrateSaves();
     toast(t(state.authMode === 'register' ? 'registerSuccess' : 'authSuccess'));
+    if (state.pendingFile) {
+      const pendingFile = state.pendingFile;
+      state.pendingFile = null;
+      await handleFile(pendingFile);
+    }
   } catch (requestError) {
     error.textContent = t('authError');
   }
@@ -478,7 +495,20 @@ $('languageButton').addEventListener('click', () => {
   toast(state.language === 'zh' ? t('switchedChinese') : t('switchedEnglish'));
 });
 document.querySelectorAll('.editable-tag').forEach(tag => tag.addEventListener('click', () => startTagEdit(tag)));
-$('confirmItemButton').addEventListener('click', () => { showScreen('analysisScreen'); runAnalysis(); });
+$('confirmItemButton').addEventListener('click', () => {
+  if (!state.user) {
+    toast(t('authRequired'));
+    openAuth();
+    return;
+  }
+  if (!state.uploadedAsset?.id) {
+    toast(state.language === 'zh' ? '请先上传或拍摄一张图片' : 'Upload or capture an image first.');
+    showScreen('guideScreen');
+    return;
+  }
+  showScreen('analysisScreen');
+  runAnalysis();
+});
 $('filterButton').addEventListener('click', () => {
   const panel = $('filterPanel');
   panel.classList.toggle('open');

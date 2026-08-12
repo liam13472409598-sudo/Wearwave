@@ -314,7 +314,8 @@ app.post('/api/analyze', requireSameOrigin, async (req, res, next) => {
     store.analyses = Array.isArray(store.analyses) ? store.analyses : [];
     store.analyses.push(analysis);
     await writeStore(store);
-    res.json({ ok:true, status:'completed', source:'openai-vision', ...analysis });
+    const source = visionConfig.baseUrl.includes('inference-api.nousresearch.com') ? 'nous-vision' : 'openai-vision';
+    res.json({ ok:true, status:'completed', source, ...analysis });
   } catch (error) { next(error); }
 });
 
