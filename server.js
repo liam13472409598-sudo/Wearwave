@@ -351,7 +351,13 @@ app.delete('/api/saves/:lookId', requireUser, requireSameOrigin, async (req, res
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) return res.status(400).json({ ok:false, error:error.code === 'LIMIT_FILE_SIZE' ? 'file_too_large' : error.code });
   if (error?.message === 'vision_provider_failed') {
-    console.error('[vision-provider]', JSON.stringify({ baseUrl:visionConfig.baseUrl, model:visionConfig.model, ...error.providerDetails }));
+    console.error('[vision-provider]', JSON.stringify({
+      baseUrl:visionConfig.baseUrl,
+      model:visionConfig.model,
+      status:error.providerDetails?.status ?? null,
+      code:error.providerDetails?.code || 'unknown',
+      message:error.providerDetails?.message || error.message
+    }));
     return res.status(502).json({ ok:false, error:error.message });
   }
   if (['vision_timeout', 'vision_empty_response', 'invalid_vision_result'].includes(error?.message)) return res.status(error.message === 'vision_timeout' ? 504 : 502).json({ ok:false, error:error.message });
