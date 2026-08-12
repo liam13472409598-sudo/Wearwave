@@ -26,7 +26,7 @@ test('requires an OpenAI vision key in production', () => {
 });
 
 test('supports Nous Portal credentials and selects a low-cost vision model', () => {
-  const result = getVisionConfig({ NOUS_PORTAL_API_KEY: 'portal-secret', OPENAI_BASE_URL: 'https://inference-api.nousresearch.com/v1' });
+  const result = getVisionConfig({ NOUS_PORTAL_API_KEY: 'portal-secret', OPENAI_BASE_URL: 'inference-api.nousresearch.com/v1' });
   assert.equal(result.enabled, true);
   assert.equal(result.apiKey, 'portal-secret');
   assert.equal(result.model, 'qwen/qwen3.7-flash');

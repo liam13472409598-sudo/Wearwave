@@ -5,6 +5,12 @@ const NOUS_DEFAULT_MODEL = 'qwen/qwen3.7-flash';
 const REQUIRED_VISION_VARS = ['OPENAI_API_KEY or NOUS_PORTAL_API_KEY'];
 const allowedStyles = new Set(['street', 'vintage', 'y2k', 'minimal', 'outdoor']);
 
+function normalizeBaseUrl(value) {
+  const raw = String(value || '').trim().replace(/\/+$/, '');
+  if (!raw) return OPENAI_BASE_URL;
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
 export const visionSystemPrompt = `You are WEARWAVE's clothing-vision classifier. Analyze only the clothing item in the supplied image; never identify, describe, or infer the person's identity, age, body, attractiveness, ethnicity, or other sensitive traits. Return only the JSON object required by the schema.
 
 Your job is to identify one primary clothing item for outfit discovery. Be conservative: if the image is not a clear, single, wearable clothing item, set isClothing to false. Do not invent brand names, prices, or details that are not visually supported. Ignore user hints when they conflict with the image.
@@ -19,7 +25,7 @@ Inspect these properties when visible: garment category, dominant color, materia
 
 export function getVisionConfig(env = process.env) {
   const apiKey = String(env.OPENAI_API_KEY || env.NOUS_PORTAL_API_KEY || env.NOUS_API_KEY || '').trim();
-  const baseUrl = String(env.OPENAI_BASE_URL || env.NOUS_BASE_URL || OPENAI_BASE_URL).trim().replace(/\/+$/, '');
+  const baseUrl = normalizeBaseUrl(env.OPENAI_BASE_URL || env.NOUS_BASE_URL || OPENAI_BASE_URL);
   const isNous = baseUrl === NOUS_BASE_URL || baseUrl.includes('inference-api.nousresearch.com');
   const missing = apiKey ? [] : REQUIRED_VISION_VARS;
   return {
@@ -90,7 +96,7 @@ function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
   const isNous = String(baseUrl).includes('inference-api.nousresearch.com');
   if (isNous) {
     return {
-      url: `${String(baseUrl).replace(/\/+$/, '')}/chat/completions`,
+      url: `${normalizeBaseUrl(baseUrl)}/chat/completions`,
       body: {
         model,
         messages: [
@@ -106,7 +112,7 @@ function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
     };
   }
   return {
-    url: `${String(baseUrl).replace(/\/+$/, '')}/responses`,
+    url: `${normalizeBaseUrl(baseUrl)}/responses`,
     body: {
       model,
       input: [{ role: 'system', content: visionSystemPrompt }, { role: 'user', content: [
@@ -141,7 +147,9 @@ export async function analyzeImage({ apiKey, baseUrl = OPENAI_BASE_URL, model = 
   } catch (error) {
     if (error?.name === 'AbortError') throw new Error('vision_timeout');
     if (/^vision_/.test(error?.message || '')) throw error;
-    throw new Error('vision_provider_failed');
+    const providerError = new Error('vision_provider_failed');
+    providerError.providerDetails = summarizeVisionProviderError({ type: error?.code || 'network_error', message: error?.message || 'Network request failed' }, 0);
+    throw providerError;
   } finally {
     clearTimeout(timeout);
   }
