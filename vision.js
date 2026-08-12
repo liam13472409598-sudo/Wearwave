@@ -89,19 +89,30 @@ function parseResponseBody(body) {
     const cleaned = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     return JSON.parse(cleaned);
   };
-  const parseParts = value => {
-    if (!Array.isArray(value)) return null;
-    const text = value.map(part => typeof part === 'string' ? part : part?.text || part?.content || '').join('').trim();
+  const extractText = (value, depth = 0) => {
+    if (depth > 5 || value == null) return '';
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value.map(item => extractText(item, depth + 1)).join('');
+    if (typeof value !== 'object') return '';
+    for (const key of ['text', 'output_text', 'content', 'parts']) {
+      if (value[key] != null) {
+        const text = extractText(value[key], depth + 1);
+        if (text.trim()) return text;
+      }
+    }
+    return '';
+  };
+  const parseContent = value => {
+    const text = extractText(value).trim();
     return text ? parseJsonText(text) : null;
   };
-  if (typeof body?.output_text === 'string') return parseJsonText(body.output_text);
+  if (body?.output_text != null) return parseContent(body.output_text);
   const text = body?.output?.flatMap(item => item.content || []).find(item => item.type === 'output_text')?.text;
   if (typeof text === 'string') return parseJsonText(text);
   const message = body?.choices?.[0]?.message || {};
-  if (typeof message.content === 'string') return parseJsonText(message.content);
-  const contentParts = parseParts(message.content);
-  if (contentParts) return contentParts;
-  if (typeof message.reasoning_content === 'string') return parseJsonText(message.reasoning_content);
+  const contentResult = parseContent(message.content);
+  if (contentResult) return contentResult;
+  if (message.reasoning_content != null) return parseContent(message.reasoning_content);
   const error = new Error('vision_empty_response');
   error.providerDetails = { status: 200, code: 'empty_response', message: JSON.stringify({ topLevelKeys: Object.keys(body || {}).slice(0, 20), choiceKeys: Object.keys(message).slice(0, 20), contentType: Array.isArray(message.content) ? 'array' : typeof message.content }) };
   throw error;
