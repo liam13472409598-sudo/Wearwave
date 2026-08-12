@@ -352,22 +352,23 @@ app.delete('/api/saves/:lookId', requireUser, requireSameOrigin, async (req, res
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) return res.status(400).json({ ok:false, error:error.code === 'LIMIT_FILE_SIZE' ? 'file_too_large' : error.code });
   if (error?.message === 'vision_provider_failed') {
+    const details = error.providerDetails || {};
     console.error('[vision-provider]', JSON.stringify({
       baseUrl:visionConfig.baseUrl,
       model:visionConfig.model,
-      status:error.providerDetails?.status ?? null,
-      code:error.providerDetails?.code || 'unknown',
-      message:error.providerDetails?.message || error.message
+      status:details.status ?? null,
+      code:details.code || 'unknown',
+      message:details.message || error.message
     }));
-    return res.status(502).json({ ok:false, error:error.message });
+    return res.status(502).json({ ok:false, error:error.message, diagnostic:{ status:details.status ?? null, code:details.code || 'unknown' } });
   }
   if (error?.message === 'vision_empty_response') {
     console.error('[vision-provider]', JSON.stringify({ baseUrl:visionConfig.baseUrl, model:visionConfig.model, status:error.providerDetails?.status ?? 200, code:error.providerDetails?.code || error.message, message:error.providerDetails?.message || 'Provider returned no parseable content' }));
-    return res.status(502).json({ ok:false, error:error.message });
+    return res.status(502).json({ ok:false, error:error.message, diagnostic:{ status:error.providerDetails?.status ?? 200, code:error.providerDetails?.code || error.message } });
   }
   if (error?.message === 'invalid_vision_result') {
     console.error('[vision-provider]', JSON.stringify({ baseUrl:visionConfig.baseUrl, model:visionConfig.model, status:error.providerDetails?.status ?? 200, code:error.providerDetails?.code || error.message, message:error.providerDetails?.message || 'Provider result did not match the clothing schema' }));
-    return res.status(502).json({ ok:false, error:error.message });
+    return res.status(502).json({ ok:false, error:error.message, diagnostic:{ status:error.providerDetails?.status ?? 200, code:error.providerDetails?.code || error.message } });
   }
   if (['vision_timeout', 'vision_empty_response'].includes(error?.message)) return res.status(error.message === 'vision_timeout' ? 504 : 502).json({ ok:false, error:error.message });
   if (error) return res.status(500).json({ ok:false, error:'server_error' });

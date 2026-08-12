@@ -172,9 +172,8 @@ function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
             { type: 'image_url', image_url: { url: imageUrl } }
           ] }
         ],
-        // Qwen3.7 Flash enables thinking by default. With a small output budget,
-        // it can spend the entire completion on hidden reasoning and return an
-        // empty content object. Disable reasoning explicitly for this classifier.
+        // Qwen3.7 Flash may spend the completion on hidden reasoning unless
+        // reasoning is explicitly disabled for this small JSON classifier.
         reasoning: { effort: 'none' },
         include_reasoning: false,
         max_tokens: 800

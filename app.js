@@ -36,6 +36,7 @@ const state = {
   pendingFile: null,
   visionResult: null,
   analysisReady: false,
+  analysisError: '',
   user: null,
   authMode: 'login',
   authModalOpen: false
@@ -64,8 +65,10 @@ const api = {
     const response = await fetch('/api/analyze', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ tags, assetId }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const error = new Error(result.error || 'analysis_failed');
+      const diagnostic = result.diagnostic?.code ? ` (${result.diagnostic.status ?? 'no-status'}:${result.diagnostic.code})` : '';
+      const error = new Error(`${result.error || 'analysis_failed'}${diagnostic}`);
       error.status = response.status;
+      error.diagnostic = result.diagnostic;
       throw error;
     }
     return result;
@@ -114,8 +117,11 @@ function renderVisionResult() {
   const nameEl = $('resultItemName');
   const sourceEl = $('sourceItemName');
   const summaryEl = $('recognitionSummary');
+  const confirmEl = $('confirmRecognition');
   if (!result) {
     if (summaryEl) summaryEl.textContent = '';
+    if (confirmEl) confirmEl.textContent = state.analysisError || (state.language === 'zh' ? '等待图片分析' : 'Waiting for image analysis');
+    $('confirmItemButton')?.setAttribute('disabled', '');
     return;
   }
   const parts = [visionLabel(result.color), visionLabel(result.material), visionLabel(result.itemType)].filter(Boolean);
@@ -127,6 +133,17 @@ function renderVisionResult() {
     summaryEl.textContent = `${state.language === 'zh' ? 'AI 已识别' : 'AI recognized'}: ${itemName}${styles}`;
     summaryEl.title = visionLabel(result.notes);
   }
+  if (confirmEl && result.isClothing) {
+    const styles = Array.isArray(result.styleTags) && result.styleTags.length ? ` · ${result.styleTags.join(', ')}` : '';
+    confirmEl.textContent = `${state.language === 'zh' ? 'AI 已识别' : 'AI recognized'}: ${itemName}${styles}`;
+    confirmEl.title = visionLabel(result.notes);
+  }
+  if (confirmEl && !result.isClothing) {
+    confirmEl.textContent = state.language === 'zh' ? `AI 未识别到单件衣物：${visionLabel(result.notes)}` : `No single clothing item detected: ${visionLabel(result.notes)}`;
+    confirmEl.title = visionLabel(result.notes);
+  }
+  if (result.isClothing) $('confirmItemButton')?.removeAttribute('disabled');
+  else $('confirmItemButton')?.setAttribute('disabled', '');
 }
 
 function applyLanguage() {
@@ -224,12 +241,16 @@ async function handleFile(file) {
     state.uploadedAsset = result.asset;
     state.visionResult = null;
     state.analysisReady = false;
+    state.analysisError = '';
     document.querySelectorAll('.item-photo').forEach(el => { el.style.backgroundImage = `url(${result.asset.url})`; });
     toast(state.language === 'zh' ? '图片已上传' : 'Image uploaded');
     showScreen('analysisScreen');
+    setAnalysisStep(0);
+    document.querySelectorAll('.item-photo').forEach(el => { el.style.backgroundImage = `url(${result.asset.url})`; });
     runAnalysis('confirmScreen');
   } catch (error) {
-    toast(state.language === 'zh' ? '上传失败，请重试' : 'Upload failed, please try again');
+    console.error('[upload-ui]', error);
+    toast(`${state.language === 'zh' ? '上传失败，请重试' : 'Upload failed, please try again'} ${error.message || ''}`.trim());
   }
 }
 
@@ -296,6 +317,7 @@ function runAnalysis(nextScreen = 'resultsScreen') {
         try {
           const analysis = await api.analyze(state.tags, state.uploadedAsset?.id || null);
           state.visionResult = analysis.result || null;
+          state.analysisError = '';
           if (state.visionResult) {
             state.tags = {
               color: state.visionResult.color,
@@ -308,6 +330,7 @@ function runAnalysis(nextScreen = 'resultsScreen') {
           }
           if (!state.visionResult) throw new Error('analysis_missing_result');
           state.analysisReady = true;
+          renderVisionResult();
           if (state.visionResult && !state.visionResult.isClothing) {
             toast(t('notClothing'));
             showScreen('confirmScreen');
@@ -317,7 +340,9 @@ function runAnalysis(nextScreen = 'resultsScreen') {
         } catch (error) {
           console.error('[analysis-ui]', error);
           state.analysisReady = false;
-          toast(`${t('analysisFailed')} ${error.message || ''}`.trim());
+          state.analysisError = `${t('analysisFailed')} ${error.message || ''}`.trim();
+          renderVisionResult();
+          toast(state.analysisError);
           showScreen('confirmScreen');
         }
       }, 450);

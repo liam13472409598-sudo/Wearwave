@@ -85,13 +85,14 @@
               <div class="eyebrow"><span class="eyebrow-line"></span><span data-i18n="looksLike">识别结果</span></div>
               <h2 data-i18n-html="confirmTitle">你的单品<br><em>已经被看见。</em></h2>
               <p class="confirm-sub" data-i18n="confirmSub">AI 已先识别这件单品。点击任意标签可以调整识别结果。</p>
+              <p class="ai-recognition-status" id="confirmRecognition" aria-live="polite">等待图片分析</p>
               <div class="tag-editor" id="tagEditor">
                 <button class="editable-tag" data-tag-key="color"><span class="tag-label" data-i18n="colorLabel">颜色</span><span class="tag-value" data-i18n-value="tagColorValue">黑色</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
                 <button class="editable-tag" data-tag-key="material"><span class="tag-label" data-i18n="materialLabel">材质</span><span class="tag-value" data-i18n-value="tagMaterialValue">牛仔</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
                 <button class="editable-tag" data-tag-key="fit"><span class="tag-label" data-i18n="fitLabel">版型</span><span class="tag-value" data-i18n-value="tagFitValue">宽腿</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
                 <button class="editable-tag" data-tag-key="type"><span class="tag-label" data-i18n="typeLabel">品类</span><span class="tag-value" data-i18n-value="tagTypeValue">裤子</span><span class="tag-edit" data-i18n="editLabel">编辑</span></button>
               </div>
-              <button class="primary-button confirm-button" id="confirmItemButton"><span class="button-icon">↗</span><span data-i18n="findLooks">确认，寻找穿搭</span></button>
+              <button class="primary-button confirm-button" id="confirmItemButton" disabled><span class="button-icon">↗</span><span data-i18n="findLooks">确认，寻找穿搭</span></button>
             </div>
           </div>
         </div>
