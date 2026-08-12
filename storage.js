@@ -22,6 +22,14 @@ export function buildAssetPath(userId, assetId, extension) {
   return `${userId}/${assetId}.${extension}`;
 }
 
+export function summarizeStorageError(error = {}) {
+  return {
+    status: Number(error.status || error.statusCode || 0) || null,
+    code: String(error.statusCode || error.code || error.error || 'unknown').slice(0, 80),
+    message: String(error.message || error.error || 'Storage request failed').replace(/[\r\n]+/g, ' ').slice(0, 240)
+  };
+}
+
 export const storageLimits = {
   maxImageBytes: 6 * 1024 * 1024,
   allowedMimeTypes: new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])

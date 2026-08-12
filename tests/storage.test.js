@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getStorageConfig, buildAssetPath } from '../storage.js';
+import { getStorageConfig, buildAssetPath, summarizeStorageError } from '../storage.js';
+
+// This test intentionally starts red until upload diagnostics are implemented.
+test('summarizes a Supabase Storage error without exposing secrets', () => {
+  assert.deepEqual(summarizeStorageError({ status: 404, statusCode: '404', error: 'Bucket not found', message: 'Bucket not found' }), {
+    status: 404,
+    code: '404',
+    message: 'Bucket not found'
+  });
+});
 
 test('requires all Supabase storage settings in production', () => {
   const result = getStorageConfig({

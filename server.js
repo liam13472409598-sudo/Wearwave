@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 import { fileTypeFromBuffer } from 'file-type';
 import pg from 'pg';
 import { createClient } from '@supabase/supabase-js';
-import { buildAssetPath, getStorageConfig } from './storage.js';
+import { buildAssetPath, getStorageConfig, summarizeStorageError } from './storage.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
@@ -174,7 +174,12 @@ app.get('/api/health', async (_req, res) => {
     try { await pool.query('SELECT 1'); database = 'postgres'; }
     catch (_) { return res.status(503).json({ ok:false, service:'wearwave', error:'database_unavailable' }); }
   }
-  res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend', database, storage:storageConfig.enabled ? 'supabase' : 'local' });
+  let storage = storageConfig.enabled ? 'supabase' : 'local';
+  if (supabase) {
+    const { error } = await supabase.storage.getBucket(storageConfig.bucket);
+    if (error) storage = 'supabase_misconfigured';
+  }
+  res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend', database, storage });
 });
 
 app.post('/api/auth/register', authLimiter, requireSameOrigin, async (req, res, next) => {
@@ -243,7 +248,10 @@ app.post('/api/uploads', uploadLimiter, requireSameOrigin, requireUser, upload.s
     const assetId = crypto.randomUUID();
     const storagePath = buildAssetPath(req.user.id, assetId, detected.ext);
     const { error: uploadError } = await supabase.storage.from(storageConfig.bucket).upload(storagePath, req.file.buffer, { contentType: detected.mime, upsert: false });
-    if (uploadError) return res.status(502).json({ ok:false, error:'storage_upload_failed' });
+    if (uploadError) {
+      console.error('[storage-upload]', JSON.stringify({ ...summarizeStorageError(uploadError), bucket:storageConfig.bucket }));
+      return res.status(502).json({ ok:false, error:'storage_upload_failed' });
+    }
     const { data: signed, error: signedError } = await supabase.storage.from(storageConfig.bucket).createSignedUrl(storagePath, 900);
     if (signedError) {
       await supabase.storage.from(storageConfig.bucket).remove([storagePath]);
