@@ -114,7 +114,7 @@
       </section>
 
       <section id="resultsScreen" class="screen results-screen">
-        <div class="results-header"><div class="results-title"><span class="results-kicker"><span data-i18n="matchesFor">匹配结果</span> / <span data-i18n="itemName">黑色牛仔宽腿裤</span></span><h2 data-i18n-html="resultsTitle">找到你的<br><em>灵感。</em></h2></div><div class="results-meta"><span data-i18n="looksFound">找到 04 套穿搭</span><button class="filter-button" id="filterButton" aria-expanded="false"><span data-i18n="filter">筛选</span> <span>＋</span></button></div></div>
+        <div class="results-header"><div class="results-title"><span class="results-kicker"><span data-i18n="matchesFor">匹配结果</span> / <span id="resultItemName" data-i18n="itemName">黑色牛仔宽腿裤</span></span><h2 data-i18n-html="resultsTitle">找到你的<br><em>灵感。</em></h2><p class="recognition-summary" id="recognitionSummary" aria-live="polite"></p></div><div class="results-meta"><span data-i18n="looksFound">找到 04 套穿搭</span><button class="filter-button" id="filterButton" aria-expanded="false"><span data-i18n="filter">筛选</span> <span>＋</span></button></div></div>
         <div class="filter-panel" id="filterPanel"><span class="filter-label" data-i18n="exploreStyle">探索风格</span><button class="filter-chip active" data-style-key="all" data-i18n="allStyle">全部</button><button class="filter-chip" data-style-key="street" data-i18n="streetStyle">街头</button><button class="filter-chip" data-style-key="vintage" data-i18n="vintageStyle">复古</button><button class="filter-chip" data-style-key="y2k" data-i18n="y2kStyle">Y2K</button><button class="filter-chip" data-style-key="minimal" data-i18n="minimalStyle">极简</button></div>
         <div class="result-feed" id="resultFeed">
           <article class="look-card" data-style-key="street" data-index="0">
@@ -135,7 +135,7 @@
           </article>
         </div>
         <div class="result-empty hidden" id="resultEmpty"><p data-i18n="noResults">没有符合条件的穿搭</p><button class="text-button" id="resetFilterButton"><span data-i18n="captureAgain">重新选择单品</span><span>↗</span></button></div>
-        <aside class="source-float" id="sourceFloat"><div class="source-thumb item-photo"></div><div class="source-copy"><span data-i18n="yourItem">你的单品</span><strong data-i18n="itemName">黑色牛仔宽腿裤</strong></div><button id="collapseSource" data-i18n-aria="collapseItem" aria-label="收起单品">−</button></aside>
+        <aside class="source-float" id="sourceFloat"><div class="source-thumb item-photo"></div><div class="source-copy"><span data-i18n="yourItem">你的单品</span><strong id="sourceItemName" data-i18n="itemName">黑色牛仔宽腿裤</strong></div><button id="collapseSource" data-i18n-aria="collapseItem" aria-label="收起单品">−</button></aside>
         <button class="source-reopen hidden" id="reopenSource"><span data-i18n="yourItem">你的单品</span> <span>＋</span></button>
       </section>
     </main>

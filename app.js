@@ -98,6 +98,30 @@ function showScreen(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function visionLabel(value) {
+  return String(value || '').trim();
+}
+
+function renderVisionResult() {
+  const result = state.visionResult;
+  const nameEl = $('resultItemName');
+  const sourceEl = $('sourceItemName');
+  const summaryEl = $('recognitionSummary');
+  if (!result) {
+    if (summaryEl) summaryEl.textContent = '';
+    return;
+  }
+  const parts = [visionLabel(result.color), visionLabel(result.material), visionLabel(result.itemType)].filter(Boolean);
+  const itemName = parts.join(' · ') || (state.language === 'zh' ? '识别到的单品' : 'Recognized item');
+  if (nameEl) nameEl.textContent = itemName;
+  if (sourceEl) sourceEl.textContent = itemName;
+  if (summaryEl) {
+    const styles = Array.isArray(result.styleTags) && result.styleTags.length ? ` · ${result.styleTags.join(', ')}` : '';
+    summaryEl.textContent = `${state.language === 'zh' ? 'AI 已识别' : 'AI recognized'}: ${itemName}${styles}`;
+    summaryEl.title = visionLabel(result.notes);
+  }
+}
+
 function applyLanguage() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
@@ -110,6 +134,7 @@ function applyLanguage() {
   document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
   updateFilterResultCount();
   if (state.modalIndex !== null) renderModal(state.modalIndex);
+  renderVisionResult();
   renderAuthModal();
 }
 
@@ -258,7 +283,9 @@ function runAnalysis() {
               type: state.visionResult.itemType
             };
             applyLanguage();
+            renderVisionResult();
           }
+          if (!state.visionResult) throw new Error('analysis_missing_result');
           if (state.visionResult && !state.visionResult.isClothing) {
             toast(t('notClothing'));
             showScreen('confirmScreen');
@@ -266,6 +293,7 @@ function runAnalysis() {
           }
           showScreen('resultsScreen');
         } catch (error) {
+          console.error('[analysis-ui]', error);
           toast(t('analysisFailed'));
           showScreen('confirmScreen');
         }
