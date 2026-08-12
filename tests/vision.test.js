@@ -95,16 +95,16 @@ test('sends the private signed image URL to the vision provider', async () => {
   });
 
   assert.equal(result.itemType, 'jeans');
-  assert.equal(request.url, 'https://inference-api.nousresearch.com/v1/responses');
+  assert.equal(request.url, 'https://inference-api.nousresearch.com/v1/chat/completions');
   assert.equal(request.options.headers.Authorization, 'Bearer secret');
   const body = JSON.parse(request.options.body);
   assert.equal(body.model, 'gpt-4o-mini');
-  assert.equal(body.input[0].role, 'system');
-  assert.equal(body.input[0].content, visionSystemPrompt);
-  assert.equal(body.input[1].role, 'user');
-  assert.equal(body.input[1].content[0].text, buildVisionUserPrompt({ type: 'pants' }));
-  assert.equal(body.input[1].content[1].image_url, 'https://example.supabase.co/signed-image?token=redacted');
-  assert.equal(body.input[1].content[0].type, 'input_text');
+  assert.equal(body.messages[0].role, 'system');
+  assert.equal(body.messages[0].content, visionSystemPrompt);
+  assert.equal(body.messages[1].role, 'user');
+  assert.equal(body.messages[1].content[0].text, buildVisionUserPrompt({ type: 'pants' }));
+  assert.equal(body.messages[1].content[1].image_url.url, 'https://example.supabase.co/signed-image?token=redacted');
+  assert.equal(body.messages[1].content[0].type, 'text');
 });
 
 test('turns provider failures into a stable error', async () => {
@@ -114,4 +114,15 @@ test('turns provider failures into a stable error', async () => {
     imageUrl: 'https://example.com/image.jpg',
     fetchImpl: async () => new Response('{"error":"bad"}', { status: 401 })
   }), error => error.message === 'vision_provider_failed' && error.providerDetails.status === 401 && error.providerDetails.message === 'bad');
+});
+
+test('parses Nous-style chat completion output', async () => {
+  const result = await analyzeImage({
+    apiKey: 'secret',
+    baseUrl: 'https://inference-api.nousresearch.com/v1',
+    model: 'qwen/qwen3.7-flash',
+    imageUrl: 'https://example.com/image.jpg',
+    fetchImpl: async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ isClothing: true, confidence: 0.9, itemType: 'shirt', color: 'white', material: 'cotton', fit: 'relaxed', styleTags: ['minimal'], notes: 'White cotton shirt.' }) } }] }), { status: 200 })
+  });
+  assert.equal(result.itemType, 'shirt');
 });

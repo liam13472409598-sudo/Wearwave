@@ -81,7 +81,42 @@ function parseResponseBody(body) {
   if (typeof body?.output_text === 'string') return JSON.parse(body.output_text);
   const text = body?.output?.flatMap(item => item.content || []).find(item => item.type === 'output_text')?.text;
   if (typeof text === 'string') return JSON.parse(text);
+  const chatText = body?.choices?.[0]?.message?.content;
+  if (typeof chatText === 'string') return JSON.parse(chatText);
   throw new Error('vision_empty_response');
+}
+
+function buildVisionRequest({ baseUrl, model, imageUrl, userTags }) {
+  const isNous = String(baseUrl).includes('inference-api.nousresearch.com');
+  if (isNous) {
+    return {
+      url: `${String(baseUrl).replace(/\/+$/, '')}/chat/completions`,
+      body: {
+        model,
+        messages: [
+          { role: 'system', content: visionSystemPrompt },
+          { role: 'user', content: [
+            { type: 'text', text: buildVisionUserPrompt(userTags) },
+            { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } }
+          ] }
+        ],
+        response_format: { type: 'json_schema', json_schema: { name: 'wearwave_clothing_analysis', strict: true, schema: outputSchema } },
+        max_tokens: 500
+      }
+    };
+  }
+  return {
+    url: `${String(baseUrl).replace(/\/+$/, '')}/responses`,
+    body: {
+      model,
+      input: [{ role: 'system', content: visionSystemPrompt }, { role: 'user', content: [
+        { type: 'input_text', text: buildVisionUserPrompt(userTags) },
+        { type: 'input_image', image_url: imageUrl, detail: 'low' }
+      ] }],
+      text: { format: { type: 'json_schema', name: 'wearwave_clothing_analysis', strict: true, schema: outputSchema } },
+      max_output_tokens: 500
+    }
+  };
 }
 
 export async function analyzeImage({ apiKey, baseUrl = OPENAI_BASE_URL, model = OPENAI_DEFAULT_MODEL, imageUrl, userTags = {}, fetchImpl = fetch, timeoutMs = 30000 }) {
@@ -89,19 +124,12 @@ export async function analyzeImage({ apiKey, baseUrl = OPENAI_BASE_URL, model = 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetchImpl(`${String(baseUrl).replace(/\/+$/, '')}/responses`, {
+    const request = buildVisionRequest({ baseUrl, model, imageUrl, userTags });
+    const response = await fetchImpl(request.url, {
       method: 'POST',
       signal: controller.signal,
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        input: [{ role: 'system', content: visionSystemPrompt }, { role: 'user', content: [
-          { type: 'input_text', text: buildVisionUserPrompt(userTags) },
-          { type: 'input_image', image_url: imageUrl, detail: 'low' }
-        ] }],
-        text: { format: { type: 'json_schema', name: 'wearwave_clothing_analysis', strict: true, schema: outputSchema } },
-        max_output_tokens: 500
-      })
+      body: JSON.stringify(request.body)
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {

@@ -182,7 +182,7 @@ app.get('/api/health', async (_req, res) => {
     const { error } = await supabase.storage.getBucket(storageConfig.bucket);
     if (error) storage = 'supabase_misconfigured';
   }
-  res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend', database, storage });
+  res.json({ ok:true, service:'wearwave', mode:isProduction ? 'production-adapter' : 'local-backend', database, storage, vision:visionConfig.enabled ? visionConfig.model : 'disabled' });
 });
 
 app.post('/api/auth/register', authLimiter, requireSameOrigin, async (req, res, next) => {
